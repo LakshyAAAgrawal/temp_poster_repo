@@ -1,81 +1,34 @@
 # posterskill
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates conference posters from your paper and project website.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper.
 
-Give it your Overleaf source, a project website, and optionally some reference posters for style — it produces a print-ready HTML poster.
+## Quick start
 
-## Setup
-
-1. Clone this repo into your project's poster directory:
-   ```bash
-   git clone git@github.com:ethanweber/posterskill.git poster
-   cd poster
-   ```
-
-2. Add your paper source (e.g., clone from Overleaf):
-   ```bash
-   git clone https://git.overleaf.com/YOUR_PROJECT_ID overleaf
-   ```
-
-3. Add reference posters (optional — for style matching):
-   ```bash
-   mkdir -p references
-   cp ~/path/to/example_poster.pdf references/
-   ```
-
-## Directory structure
-
-```
-poster/
-├── overleaf/              # Your Overleaf paper source
-│   ├── paper.tex
-│   ├── figures/
-│   └── ...
-├── references/            # Example posters for style matching (optional)
-│   └── example_poster.pdf
-├── poster.html            # Generated output
-├── .claude/
-│   └── skills/
-│       └── make-poster/
-│           ├── SKILL.md       # Skill instructions
-│           └── template.html  # HTML poster template
-├── .gitignore
-└── README.md
+```bash
+git clone git@github.com:ethanweber/posterskill.git poster && cd poster
+git clone https://git.overleaf.com/YOUR_PROJECT_ID overleaf   # your paper
 ```
 
-- `overleaf/` and `references/` are gitignored — they contain your project-specific content.
-- `poster.html` (the output) is also gitignored.
+Optionally add reference posters for style matching:
 
-## Usage
-
-Open Claude Code in the poster directory and run:
-
-```
-/make-poster
+```bash
+mkdir references && cp ~/some_poster.pdf references/
 ```
 
-The skill will:
-1. Read your paper from `overleaf/`
-2. View any reference posters in `references/`
-3. Ask you for your project website URL and formatting requirements (poster size, orientation, columns, etc.)
-4. Generate `poster.html`
-
-You can also pass notes directly:
+Then in Claude Code:
 
 ```
 /make-poster 3DV, A1 landscape, 3 columns
-/make-poster https://3dvconf.github.io/2026/poster-instructions/
 ```
 
-## Printing to PDF
+It reads your paper, fetches your project website, matches your reference style, and outputs `poster.html`. Print to PDF from Chrome (margins: none, background graphics: on).
 
-Open `poster.html` in Chrome, then **Print > Save as PDF** with:
-- **Paper size:** Custom, matching your poster dimensions
-- **Margins:** None
-- **Background graphics:** ON
+## Inputs
 
-## Customization
-
-- Drop multiple reference posters into `references/` to guide the visual style.
-- The skill supports formatting requirements as plain text or a URL to the conference's poster instructions page.
-- Edit `.claude/skills/make-poster/SKILL.md` to customize the skill behavior.
+| Input | Source | Required |
+|-------|--------|----------|
+| Paper | `overleaf/` directory | Yes |
+| Project website | URL (asked at runtime) | Yes |
+| Reference posters | `references/` directory | No |
+| Author website | URL for brand/style matching | No |
+| Formatting specs | Text or conference instructions URL | Asked if missing |

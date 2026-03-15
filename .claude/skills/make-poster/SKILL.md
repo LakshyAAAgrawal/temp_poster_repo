@@ -42,7 +42,8 @@ poster/
 1. **Paper source** - Auto-discovered from `overleaf/`. Read `paper.tex` and any `\input{}` files (e.g., `preamble.tex`, `tables/*.tex`).
 2. **Project website** - Ask the user for the URL if not already known. Fetch with WebFetch to extract author info, hosted images, and links.
 3. **Reference posters** - Auto-discovered from `references/`. View all files there and match their style.
-4. **Formatting requirements** - The user may provide these as:
+4. **Author website** (optional) - The user may provide a personal/lab website URL for brand matching. Fetch it with WebFetch and extract design signals: color palette, typography, layout aesthetic (minimal vs. bold), spacing preferences, and overall visual identity. Use these as soft style hints — the reference posters take priority for poster-specific layout, but the author's brand should influence color choices, font selections, and overall tone.
+5. **Formatting requirements** - The user may provide these as:
    - **A URL** to the conference poster instructions page (fetch with WebFetch to extract requirements)
    - **Text** describing their constraints directly
    - **Both** a URL and additional notes
@@ -61,8 +62,8 @@ If the user doesn't specify formatting, ask them before proceeding. Don't assume
 
 ## Process
 
-### Step 0: Analyze reference posters
-Look in `references/` for any PDF, PNG, or image files. Read/view each one and note:
+### Step 0: Analyze style references
+**Reference posters:** Look in `references/` for any PDF, PNG, or image files. Read/view each one and note:
 - Overall layout structure (number of columns, box styles, spacing)
 - Color palette (primary, secondary, accent colors)
 - Typography choices (font families, weights, sizes)
@@ -73,6 +74,8 @@ Look in `references/` for any PDF, PNG, or image files. Read/view each one and n
 - Any distinctive design elements to replicate
 
 Use these observations to override the default template styling.
+
+**Author website:** If the user provides a personal or lab website URL, fetch it and extract design signals: color palette, font choices, layout density, and overall aesthetic. Use these as soft hints for the poster's visual identity (colors, fonts, tone). Reference posters take priority for layout decisions.
 
 ### Step 1: Extract content from paper source
 Read `overleaf/paper.tex` and extract:
