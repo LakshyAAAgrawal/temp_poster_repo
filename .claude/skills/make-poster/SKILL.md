@@ -21,7 +21,7 @@ posterskill/
 │   ├── figures/
 │   └── ...
 ├── references/            # Reference posters for style matching
-│   └── *.pdf, *.png
+│   └── (any format: pdf, png, jpg, html, pptx, ...)
 ├── poster/                # GENERATED: self-contained poster website
 │   ├── index.html         # The poster
 │   ├── teaser.png         # Copied/converted figures
