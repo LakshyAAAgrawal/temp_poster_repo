@@ -26,15 +26,21 @@ poster/
 │   ├── tables/
 │   └── ...
 ├── references/        # Reference posters for style matching
-│   ├── *.pdf          # Example posters the user likes
+│   ├── *.pdf
 │   ├── *.png
 │   └── ...
-├── poster.html        # OUTPUT: generated poster
+├── assets/            # GENERATED: figures/images copied here for the poster
+│   ├── teaser.png
+│   ├── architecture.png
+│   ├── qr.png
+│   └── ...
+├── poster.html        # GENERATED: the poster
 └── .claude/skills/make-poster/
 ```
 
 - **`overleaf/`** contains the paper source. Read `paper.tex` and any files it `\input{}`s.
 - **`references/`** contains example posters showing the user's preferred visual style. Read/view ALL files in this folder to match their design language.
+- **`assets/`** is created during generation. Figures are copied/converted here from overleaf, the project website, or the author website. The poster HTML references these.
 - The generated poster is written to the project root as `poster.html`.
 
 ## Inputs
@@ -121,13 +127,32 @@ Adapt the layout to the user's formatting requirements. If not specified, ask fi
 
 Adjust the CSS grid to match the requested number of columns. Scale font sizes proportionally to the poster dimensions.
 
-### Step 4: Generate the HTML poster
+### Step 4: Gather assets
+Copy any figures, images, or logos you need into an `assets/` directory at the project root. Sources:
+- **From `overleaf/figures/`** - copy and convert PDFs to PNGs (use `sips -s format png` on macOS or `pdftoppm`). Keep filenames descriptive.
+- **From the project website** - download hosted images (use `curl`) that are higher quality or more poster-appropriate than the paper figures.
+- **From the author website** - download logos, headshots, or branding assets if useful.
+- **QR code** - generate and save to `assets/qr.png`.
+
+Reference figures in `poster.html` as `assets/filename.png`. This keeps the poster self-contained and avoids broken paths.
+
+### Step 5: Generate the HTML poster
 Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. Customize it with the extracted content. Write the output to `poster.html` in the project root.
+
+### Step 6: Iterate with the user
+After generating the first draft, expect feedback. The user will likely want to adjust:
+- Layout, spacing, or column balance
+- Which figures to include or swap
+- Text content (too much, too little, wording)
+- Colors, fonts, or visual style
+- Figure sizing or placement
+
+When the user gives feedback, make targeted edits to `poster.html` (and `assets/` if swapping figures). Don't regenerate from scratch unless asked — preserve their previous feedback. Keep iterating until they're happy.
 
 ## Important guidelines
 
 - **Keep text minimal.** Posters are visual. Use bullet points, not paragraphs. Aim for someone to understand the work in 2 minutes.
-- **Prioritize figures.** Include the most impactful figures. Use relative paths from the poster root, e.g., `overleaf/figures/teaser_small.pdf`. Prefer PNG versions since browsers can't render PDFs inline.
+- **Prioritize figures.** Include the most impactful figures. Copy them into `assets/` and convert to PNG. Reference as `assets/filename.png` in the HTML.
 - **Print-optimized CSS.** Use `@media print` and `@page` rules. Set page size to match the user's specified dimensions. Use `print-color-adjust: exact` for backgrounds.
 - **Color scheme.** Use the reference poster colors, user-specified colors, or conference branding. Fall back to the conference color schemes below if nothing else is specified.
 - **Font sizes for print.** Scale proportionally to poster size. For A0 portrait: title ~60-72pt, headers ~32-36pt, body ~20-24pt, captions ~16-18pt. For smaller posters (e.g., A1 landscape), scale down accordingly.
@@ -149,6 +174,7 @@ Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. C
 - **SIGGRAPH**: `#333333` (dark gray)
 
 ## Figure handling
-- If figures exist as PDFs in `overleaf/figures/`, note that browsers can't display PDFs inline. Convert them with a tool like `pdftoppm` or `sips`, or ask the user for PNG versions.
-- If the project website has hosted images, use those URLs directly.
-- For the architecture figure, the PNG version is often available (e.g., `model-architecture-all.png`).
+- Always copy needed figures into `assets/` — don't reference `overleaf/` paths directly in the HTML.
+- Convert PDFs to PNGs: `sips -s format png input.pdf --out assets/output.png` (macOS) or `pdftoppm -png -r 300 input.pdf assets/output` (Linux).
+- If the project website has higher-res or more poster-friendly images, download those instead: `curl -o assets/filename.png URL`.
+- PNGs already in `overleaf/figures/` (e.g., `model-architecture-all.png`) can be copied directly.

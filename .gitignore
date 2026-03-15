@@ -5,6 +5,7 @@ references/
 # Generated output
 poster.html
 poster.css
+assets/
 
 # OS
 .DS_Store
