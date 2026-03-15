@@ -18,7 +18,7 @@ mkdir references && cp ~/some_poster.pdf references/
 Then in Claude Code:
 
 ```
-/make-poster 3DV, A1 landscape, 3 columns
+/make-poster
 ```
 
 It reads your paper, fetches your project website, matches your reference style, and outputs `poster.html`. Print to PDF from Chrome (margins: none, background graphics: on).

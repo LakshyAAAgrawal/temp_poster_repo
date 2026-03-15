@@ -1,11 +1,14 @@
 # User-provided content (not part of the tool)
-overleaf/
-references/
+overleaf/*
+!overleaf/.gitkeep
+references/*
+!references/.gitkeep
 
 # Generated output
 poster.html
 poster.css
-assets/
+assets/*
+!assets/.gitkeep
 
 # OS
 .DS_Store
