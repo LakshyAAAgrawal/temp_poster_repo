@@ -1,6 +1,6 @@
 # posterskill
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper. The poster is an interactive React-based editor — a single HTML file you open in your browser. No build step needed.
 
 ## Quick start
 
@@ -21,7 +21,21 @@ Then in Claude Code:
 /make-poster
 ```
 
-It reads your paper, fetches your project website, matches your reference style, and generates a `poster/` directory. Open `poster/index.html` in a browser to preview, then print to PDF.
+It reads your paper, fetches your project website, matches your reference style, and generates a `poster/` directory. Open `poster/index.html` in a browser to preview and edit.
+
+## What you get
+
+The poster is a **self-contained HTML file** with a built-in visual editor:
+
+- **Drag column dividers** to resize columns
+- **Drag row dividers** to resize cards within columns
+- **Click-to-swap** cards (click one diamond handle, then another)
+- **Move/insert** cards to any position (click a handle, then click a drop zone)
+- **A-/A+** buttons to adjust font size globally
+- **Preview** mode to see exactly how it will print
+- **Save / Copy Config** to export your layout as JSON
+
+No npm, no build step, no server. Just open `index.html` in Chrome.
 
 ## Inputs
 
@@ -32,3 +46,49 @@ It reads your paper, fetches your project website, matches your reference style,
 | Reference posters | `references/` directory | No |
 | Author website | URL for brand/style matching | No |
 | Formatting specs | Text or conference instructions URL | Asked if missing |
+| Logos | Downloaded from your website to `poster/logos/` | Auto |
+| Git repo | URL to push the poster to | Optional |
+
+## Editing workflow
+
+1. Claude generates the first draft and opens it in your browser
+2. Drag dividers, swap cards, adjust font size in the browser
+3. Click **Copy Config** in the toolbar
+4. Paste the JSON back to Claude — it updates the defaults
+5. Repeat until you're happy
+6. Click **Preview** to verify, then print to PDF (margins: none, background graphics: on)
+
+## How it works under the hood
+
+The poster uses a React app (loaded via CDN) with:
+
+- **`CARD_REGISTRY`** — defines each card's content (title, color, JSX body)
+- **`DEFAULT_LAYOUT`** — defines column structure and card ordering
+- **`DEFAULT_LOGOS`** — institutional logos for the header
+- **`window.posterAPI`** — programmatic API for automation
+
+Claude uses [Playwright](https://playwright.dev/) to:
+- Measure image aspect ratios and assign them to matching columns
+- Auto-optimize column widths to minimize whitespace
+- Take screenshots and visually verify the layout
+- Generate PDFs at full print resolution
+
+## Programmatic API
+
+Available in the browser console or via Playwright:
+
+```js
+posterAPI.swapCards('method', 'results')      // swap two cards
+posterAPI.moveCard('quant', 'col1', 2)        // move card to position
+posterAPI.setColumnWidth('col1', 280)          // resize column (mm)
+posterAPI.setCardHeight('method', 150)         // set card height (mm)
+posterAPI.setFontScale(1.5)                    // adjust text size
+posterAPI.getWaste()                           // measure whitespace
+posterAPI.getLayout()                          // get current layout
+posterAPI.getConfig()                          // get full config JSON
+posterAPI.resetLayout()                        // restore defaults
+```
+
+## Example
+
+See [fillerbuster-poster](https://github.com/ethanweber/fillerbuster-poster) for an example poster built with this skill.
