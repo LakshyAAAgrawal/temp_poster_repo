@@ -97,4 +97,4 @@ posterAPI.resetLayout()                        // restore defaults
 
 ## Example
 
-See [fillerbuster-poster](https://github.com/ethanweber/fillerbuster-poster) for an example poster built with this skill.
+See the [Fillerbuster poster](http://ethanweber.me/fillerbuster-poster) ([repo](https://github.com/ethanweber/fillerbuster-poster)) for an example built with this skill.
