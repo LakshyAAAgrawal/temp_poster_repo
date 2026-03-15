@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAPER TITLE - Conference Poster</title>
+
+<!-- KaTeX for math rendering -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     CUSTOMIZE: Conference accent color
+     ============================================================ */
+  :root {
+    --primary: #2178B5;          /* Conference accent */
+    --primary-light: #e8f2fa;    /* Light tint for backgrounds */
+    --primary-dark: #185a85;     /* Darker shade */
+    --text: #1a1a1a;
+    --text-light: #555;
+    --bg: #ffffff;
+    --border: #e0e0e0;
+    --highlight-bg: #f0f7fc;
+  }
+
+  /* ============================================================
+     Page & Print Setup - A0 Portrait
+     ============================================================ */
+  @page {
+    size: 841mm 1189mm;
+    margin: 0;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    width: 841mm;
+    min-height: 1189mm;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============================================================
+     Header / Title Bar
+     ============================================================ */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 30mm 35mm 25mm;
+    position: relative;
+  }
+
+  .header .conf-badge {
+    position: absolute;
+    top: 20mm;
+    right: 35mm;
+    font-size: 28pt;
+    font-weight: 800;
+    background: rgba(255,255,255,0.2);
+    padding: 8mm 16mm;
+    border-radius: 6mm;
+    letter-spacing: 2px;
+  }
+
+  .header h1 {
+    font-size: 64pt;
+    font-weight: 800;
+    line-height: 1.15;
+    max-width: 85%;
+    margin-bottom: 12mm;
+  }
+
+  .header .authors {
+    font-size: 26pt;
+    font-weight: 400;
+    line-height: 1.5;
+    opacity: 0.95;
+  }
+
+  .header .authors sup {
+    font-size: 16pt;
+  }
+
+  .header .affiliations {
+    font-size: 20pt;
+    font-weight: 300;
+    margin-top: 5mm;
+    opacity: 0.8;
+  }
+
+  /* ============================================================
+     Main Content - 3 Columns
+     ============================================================ */
+  .content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20mm;
+    padding: 25mm 35mm;
+    align-content: start;
+  }
+
+  /* ============================================================
+     Poster Blocks
+     ============================================================ */
+  .block {
+    break-inside: avoid;
+    margin-bottom: 18mm;
+  }
+
+  .block h2 {
+    font-size: 34pt;
+    font-weight: 700;
+    color: var(--primary);
+    border-bottom: 3px solid var(--primary);
+    padding-bottom: 4mm;
+    margin-bottom: 10mm;
+  }
+
+  .block p, .block li {
+    font-size: 22pt;
+    line-height: 1.45;
+    color: var(--text);
+  }
+
+  .block ul, .block ol {
+    padding-left: 12mm;
+  }
+
+  .block li {
+    margin-bottom: 4mm;
+  }
+
+  .block li::marker {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  /* ============================================================
+     Highlight Box (for abstract, key contributions)
+     ============================================================ */
+  .highlight {
+    background: var(--highlight-bg);
+    border-left: 5px solid var(--primary);
+    padding: 10mm 12mm;
+    border-radius: 0 4mm 4mm 0;
+    margin: 8mm 0;
+  }
+
+  .highlight p {
+    font-size: 22pt;
+    line-height: 1.5;
+  }
+
+  /* ============================================================
+     Figures
+     ============================================================ */
+  .figure {
+    text-align: center;
+    margin: 10mm 0;
+  }
+
+  .figure img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 3mm;
+  }
+
+  .figure .caption {
+    font-size: 18pt;
+    color: var(--text-light);
+    margin-top: 5mm;
+    text-align: left;
+    line-height: 1.3;
+  }
+
+  .figure .caption strong {
+    color: var(--text);
+  }
+
+  /* ============================================================
+     Tables
+     ============================================================ */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 20pt;
+    margin: 8mm 0;
+  }
+
+  thead th {
+    background: var(--primary);
+    color: white;
+    padding: 5mm 6mm;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  tbody td {
+    padding: 4mm 6mm;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--primary-light);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 2px solid var(--primary);
+  }
+
+  .best {
+    font-weight: 700;
+    color: var(--primary-dark);
+  }
+
+  /* ============================================================
+     Math (KaTeX)
+     ============================================================ */
+  .katex { font-size: 24pt !important; }
+  .katex-display { margin: 8mm 0; }
+
+  /* ============================================================
+     QR Code & Links Section
+     ============================================================ */
+  .links-section {
+    display: flex;
+    align-items: center;
+    gap: 12mm;
+    background: var(--highlight-bg);
+    padding: 10mm;
+    border-radius: 4mm;
+    margin-top: 8mm;
+  }
+
+  .links-section .qr {
+    flex-shrink: 0;
+  }
+
+  .links-section .qr img {
+    width: 50mm;
+    height: 50mm;
+  }
+
+  .links-section .link-list {
+    font-size: 19pt;
+    line-height: 1.6;
+  }
+
+  .links-section .link-list a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* ============================================================
+     Footer
+     ============================================================ */
+  .footer {
+    background: var(--primary-light);
+    padding: 12mm 35mm;
+    font-size: 17pt;
+    color: var(--text-light);
+    line-height: 1.5;
+    border-top: 2px solid var(--primary);
+  }
+
+  .footer .logos {
+    display: flex;
+    align-items: center;
+    gap: 15mm;
+    margin-bottom: 5mm;
+  }
+
+  .footer .logos img {
+    height: 25mm;
+  }
+
+  /* ============================================================
+     Utility
+     ============================================================ */
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .spacer {
+    height: 10mm;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<div class="header">
+  <div class="conf-badge">CONF 2026</div>
+  <h1>Paper Title Goes Here</h1>
+  <div class="authors">
+    Author One<sup>1</sup>, Author Two<sup>2</sup>, Author Three<sup>1</sup>
+  </div>
+  <div class="affiliations">
+    <sup>1</sup>University A &nbsp;&bull;&nbsp; <sup>2</sup>University B
+  </div>
+</div>
+
+<!-- ============================================================
+     CONTENT - 3 COLUMNS
+     ============================================================ -->
+<div class="content">
+
+  <!-- ==== COLUMN 1 ==== -->
+  <div class="column">
+
+    <div class="block">
+      <h2>TL;DR</h2>
+      <div class="highlight">
+        <p>FILL IN: One to two sentence summary of the paper's key contribution and result.</p>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Problem</h2>
+      <ul>
+        <li>FILL IN: What problem are you solving?</li>
+        <li>FILL IN: Why is it hard?</li>
+        <li>FILL IN: What's missing in prior work?</li>
+      </ul>
+      <div class="figure">
+        <!-- <img src="figures/problem-setting.png" alt="Problem setting"> -->
+        <!-- <div class="caption"><strong>Problem setting.</strong> Description here.</div> -->
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Key Contributions</h2>
+      <ol>
+        <li>FILL IN: Contribution 1</li>
+        <li>FILL IN: Contribution 2</li>
+        <li>FILL IN: Contribution 3</li>
+      </ol>
+    </div>
+
+  </div>
+
+  <!-- ==== COLUMN 2 ==== -->
+  <div class="column">
+
+    <div class="block">
+      <h2>Method</h2>
+      <div class="figure">
+        <!-- <img src="figures/model-architecture.png" alt="Model architecture"> -->
+        <!-- <div class="caption"><strong>Model overview.</strong> Description of the architecture.</div> -->
+      </div>
+      <ul>
+        <li>FILL IN: How does the method work?</li>
+        <li>FILL IN: Key design decisions</li>
+      </ul>
+      <!-- Key equation example:
+      <p>$$s_{i,t} = \tilde{z}^I_{i,t} \oplus \mathcal{E}^I(I_i \odot M_i^I) \oplus \mathcal{D}(M_i^I)$$</p>
+      -->
+    </div>
+
+    <div class="block">
+      <h2>Qualitative Results</h2>
+      <div class="figure">
+        <!-- <img src="figures/results.png" alt="Qualitative results"> -->
+        <!-- <div class="caption"><strong>Scene completion results.</strong> Description here.</div> -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==== COLUMN 3 ==== -->
+  <div class="column">
+
+    <div class="block">
+      <h2>Quantitative Results</h2>
+      <!--
+      <table>
+        <thead>
+          <tr><th>Method</th><th>PSNR &uarr;</th><th>SSIM &uarr;</th><th>LPIPS &darr;</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Baseline</td><td>25.57</td><td>0.89</td><td>0.182</td></tr>
+          <tr><td><strong>Ours</strong></td><td class="best">29.60</td><td class="best">0.92</td><td class="best">0.096</td></tr>
+        </tbody>
+      </table>
+      -->
+    </div>
+
+    <div class="block">
+      <h2>Additional Results</h2>
+      <div class="figure">
+        <!-- <img src="figures/additional.png" alt="Additional results"> -->
+        <!-- <div class="caption"><strong>Additional results.</strong> Description.</div> -->
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Conclusion</h2>
+      <ul>
+        <li>FILL IN: Main takeaway</li>
+        <li>FILL IN: Impact</li>
+        <li>FILL IN: Future work</li>
+      </ul>
+
+      <div class="links-section">
+        <div class="qr">
+          <!-- Generate QR code at: https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=YOUR_URL -->
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://example.com" alt="QR Code">
+        </div>
+        <div class="link-list">
+          <strong>Project page:</strong> example.com<br>
+          <strong>Code:</strong> github.com/...<br>
+          <strong>Paper:</strong> arxiv.org/abs/...<br>
+          <strong>Video:</strong> youtu.be/...
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<div class="footer">
+  <div class="logos">
+    <!-- <img src="logo1.png" alt="Institution 1"> -->
+    <!-- <img src="logo2.png" alt="Institution 2"> -->
+  </div>
+  <p><strong>Acknowledgements:</strong> FILL IN acknowledgements text here.</p>
+</div>
+
+</body>
+</html>
