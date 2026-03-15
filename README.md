@@ -2,6 +2,8 @@
 
 A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper. Point it at your Overleaf source and project website — it extracts the content, downloads figures, fetches logos, and builds an interactive poster you can edit in your browser. Single HTML file, no build step.
 
+The key idea: the poster is a **live editor**. Drag dividers to resize columns and rows, click cards to swap or move them, adjust font sizes — then feed your layout back to Claude for further refinement. Iterate between the browser and Claude until it's perfect.
+
 ## Quick start
 
 ```bash
@@ -15,7 +17,11 @@ Optionally add reference posters for style matching:
 cp ~/some_poster.pdf references/
 ```
 
-Then in Claude Code:
+Then start Claude Code and run the skill:
+
+```bash
+claude
+```
 
 ```
 /make-poster
