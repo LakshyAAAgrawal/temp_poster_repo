@@ -37,7 +37,7 @@ posterskill/
 
 ## Inputs
 
-1. **Paper source** - Auto-discovered from `overleaf/`. Read `paper.tex` and any `\input{}` files (e.g., `preamble.tex`, `tables/*.tex`).
+1. **Paper source** - Located in `overleaf/`. Ask the user which `.tex` file is the main one to read (e.g., `paper.tex`, `main.tex`). Then read it and any files it `\input{}`s (e.g., `preamble.tex`, `tables/*.tex`).
 2. **Project website** - Ask the user for the URL if not already known. Fetch with WebFetch to extract author info, hosted images, and links.
 3. **Reference posters** - Auto-discovered from `references/`. View all files there and match their style.
 4. **Author website** (optional) - The user may provide a personal/lab website URL for brand matching. Fetch it with WebFetch and extract design signals: color palette, typography, layout aesthetic (minimal vs. bold), spacing preferences, and overall visual identity. Use these as soft style hints — the reference posters take priority for poster-specific layout, but the author's brand should influence color choices, font selections, and overall tone.
@@ -76,7 +76,7 @@ Use these observations to override the default template styling.
 **Author website:** If the user provides a personal or lab website URL, fetch it and extract design signals: color palette, font choices, layout density, and overall aesthetic. Use these as soft hints for the poster's visual identity (colors, fonts, tone). Reference posters take priority for layout decisions.
 
 ### Step 1: Extract content from paper source
-Read `overleaf/paper.tex` and extract:
+Ask the user which `.tex` file to read if not already known. Read it and extract:
 - Title, authors, affiliations
 - Abstract (shortened for poster - 2-3 sentences max)
 - Key method description and architecture figure references
