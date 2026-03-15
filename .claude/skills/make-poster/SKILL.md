@@ -10,12 +10,12 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, Agent
 
 Generate a professional HTML poster. User notes: $ARGUMENTS
 
-The poster is a self-contained website in the `poster/` directory. Open `poster/index.html` in a browser to preview, then print to PDF.
+The poster is a **React-based interactive editor** — a single self-contained HTML file in the `poster/` directory. No build step needed (React/Babel loaded via CDN). The user can visually adjust the layout in their browser, then export the config back to Claude for further changes.
 
 ## Project folder structure
 
 ```
-posterskill/
+<project>/
 ├── overleaf/              # Paper source from Overleaf
 │   ├── paper.tex
 │   ├── figures/
@@ -23,139 +23,263 @@ posterskill/
 ├── references/            # Reference posters for style matching
 │   └── (any format: pdf, png, jpg, html, pptx, ...)
 ├── poster/                # GENERATED: self-contained poster website
-│   ├── index.html         # The poster
+│   ├── index.html         # The poster (React app)
+│   ├── poster-config.json # Layout config (columns, card order, heights, font scale)
+│   ├── logos/             # Institution logos
 │   ├── teaser.png         # Copied/converted figures
-│   ├── architecture.png
-│   ├── qr.png
+│   ├── qr.png             # Project page QR code
+│   ├── qr-posterskill.png # Posterskill QR code
 │   └── ...
 └── .claude/skills/make-poster/
 ```
 
-- **`overleaf/`** contains the paper source. Read `paper.tex` and any files it `\input{}`s.
+- **`overleaf/`** contains the paper source. Read the main `.tex` file and any files it `\input{}`s.
 - **`references/`** contains example posters showing the user's preferred visual style. Read/view ALL files in this folder to match their design language.
-- **`poster/`** is the generated output — a self-contained website. All figures and assets live alongside `index.html` so relative paths just work. Open in a browser to preview, print to get the final PDF.
+- **`poster/`** is the generated output — a self-contained website. All figures and assets live alongside `index.html` so relative paths just work.
 
 ## Inputs
 
-1. **Paper source** - Located in `overleaf/`. Ask the user which `.tex` file is the main one to read (e.g., `paper.tex`, `main.tex`). Then read it and any files it `\input{}`s (e.g., `preamble.tex`, `tables/*.tex`).
+1. **Paper source** - Located in `overleaf/`. Ask the user which `.tex` file is the main one to read (e.g., `paper.tex`, `main.tex`). Then read it and any files it `\input{}`s.
 2. **Project website** - Ask the user for the URL if not already known. Fetch with WebFetch to extract author info, hosted images, and links.
 3. **Reference posters** - Auto-discovered from `references/`. View all files there and match their style.
-4. **Author website** (optional) - The user may provide a personal/lab website URL for brand matching. Fetch it with WebFetch and extract design signals: color palette, typography, layout aesthetic (minimal vs. bold), spacing preferences, and overall visual identity. Use these as soft style hints — the reference posters take priority for poster-specific layout, but the author's brand should influence color choices, font selections, and overall tone.
-5. **Formatting requirements** - The user may provide these as:
-   - **A URL** to the conference poster instructions page (fetch with WebFetch to extract requirements)
-   - **Text** describing their constraints directly
-   - **Both** a URL and additional notes
-
-   Extract or ask for:
-   - Poster dimensions (e.g., A0, A1 landscape, 48"x36", custom size)
-   - Orientation (portrait or landscape)
-   - Number of columns (e.g., 2, 3, 4)
-   - Required sections or content ordering
-   - Color scheme or branding constraints
-   - Font requirements
-   - Logo placement
-   - Any conference-specific formatting rules (poster board size limits, etc.)
+4. **Author website** (optional) - Fetch with WebFetch and extract design signals (color palette, typography, logos). Download institutional logos from the author's site using Playwright (curl may fail due to redirects): `page.request.get(url)` to download the raw bytes.
+5. **Formatting requirements** - Ask for poster dimensions, orientation, number of columns.
+6. **Git repo** (optional) - Ask the user if they have a GitHub repo to push the poster to.
 
 If the user doesn't specify formatting, ask them before proceeding. Don't assume defaults for dimensions, orientation, or column count.
 
 ## Process
 
 ### Step 0: Analyze style references
-**Reference posters:** Look in `references/` for any PDF, PNG, or image files. Read/view each one and note:
-- Overall layout structure (number of columns, box styles, spacing)
-- Color palette (primary, secondary, accent colors)
-- Typography choices (font families, weights, sizes)
-- Figure-to-text ratio and figure placement style
-- Header/title bar design
-- How sections are visually separated (lines, boxes, cards, whitespace)
-- QR code placement and footer style
-- Any distinctive design elements to replicate
-
-Use these observations to override the default template styling.
-
-**Author website:** If the user provides a personal or lab website URL, fetch it and extract design signals: color palette, font choices, layout density, and overall aesthetic. Use these as soft hints for the poster's visual identity (colors, fonts, tone). Reference posters take priority for layout decisions.
+Look in `references/` for any PDF, PNG, or image files. Convert PDFs to PNGs (`sips -s format png` on macOS). View each one and note the visual style — layout, colors, typography, card styles, figure placement. **Match the reference style** — don't default to a dark theme if the reference is light, etc.
 
 ### Step 1: Extract content from paper source
-Ask the user which `.tex` file to read if not already known. Read it and extract:
-- Title, authors, affiliations
-- Abstract (shortened for poster - 2-3 sentences max)
-- Key method description and architecture figure references
-- Main results (tables and qualitative figures)
-- Key equations (only the most important 1-2, render with KaTeX)
-- Conclusion / key takeaways
+Ask the user which `.tex` file to read. Extract: title, authors, affiliations, abstract (2-3 sentences), key method, results (tables + figures), key equations (1-2 max), conclusion.
 
 ### Step 2: Fetch the project website
-Use WebFetch to get:
-- Author names and affiliations (with correct formatting)
-- Any additional figure URLs or hosted images
-- Project URL for the QR code
-- Links to code, arxiv, video
+Use WebFetch to get author names, affiliations, figure URLs, project URL for QR, links to code/arxiv/video.
 
-### Step 3: Design the poster layout
-Adapt the layout to the user's formatting requirements. If not specified, ask first.
+### Step 3: Gather assets into `poster/`
 
-**General structure (adjust columns/sections per user requirements):**
+**Figures:** Copy from `overleaf/figures/`, converting PDFs to PNGs at high resolution:
+```bash
+sips -s format png input.pdf --out poster/output.png -Z 3000
+```
 
-**Header (full width):**
-- Conference name/logo (top corner)
-- Paper title (large, bold)
-- Authors with affiliations
-- Institutional logos if available
+**Website images:** Download higher-quality images from the project website using Playwright (not curl — many sites redirect):
+```python
+resp = page.request.get(url)
+with open('poster/filename.png', 'wb') as f:
+    f.write(resp.body())
+```
 
-**Typical content sections (distribute across columns as appropriate):**
-- TL;DR / Abstract (2-3 sentences in a highlight box)
-- Motivation / Problem Setting
-- Key contributions (numbered list)
-- Method overview (with architecture figure)
-- Key equations (rendered with KaTeX)
-- Qualitative results (main figures)
-- Quantitative results (styled tables, bold best)
-- Conclusion / key takeaways
-- QR code to project page + links to code/paper/video
+**Logos:** Download institutional logos from the author's personal website using Playwright. Save to `poster/logos/`. The template auto-inverts them to white for the header.
 
-**Footer (full width):**
-- Acknowledgements (small text)
-- Institutional logos
+**QR codes:** Generate and save:
+```bash
+curl -sL -o poster/qr.png "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=PROJECT_URL"
+curl -sL -o poster/qr-posterskill.png "https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://github.com/ethanweber/posterskill"
+```
 
-Adjust the CSS grid to match the requested number of columns. Scale font sizes proportionally to the poster dimensions.
+### Step 4: Measure image aspect ratios
+**This is critical for eliminating whitespace.** Measure every image:
+```bash
+sips -g pixelWidth -g pixelHeight poster/*.png poster/*.jpg
+```
 
-### Step 4: Gather assets into `poster/`
-Create the `poster/` directory and copy any figures, images, or logos there. Sources:
-- **From `overleaf/figures/`** - copy and convert PDFs to PNGs (use `sips -s format png` on macOS or `pdftoppm`). Keep filenames descriptive.
-- **From the project website** - download hosted images (use `curl`) that are higher quality or more poster-appropriate than the paper figures.
-- **From the author website** - download logos, headshots, or branding assets if useful.
-- **QR code** - generate and save to `poster/qr.png`.
+Then assign images to columns based on aspect ratio:
+- **Wide images** (>2:1 ratio, e.g. teaser, architecture): put in the widest column
+- **Square images** (~1:1 ratio): put in narrow columns
+- **Portrait images** (<1:1 ratio): put in the narrowest column
 
-All assets live in `poster/` alongside `index.html`, so reference them with simple relative paths like `<img src="teaser.png">`.
+This prevents the #1 whitespace problem: wide images in narrow cells (or vice versa) leaving huge gaps.
 
-### Step 5: Generate the HTML poster
-Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. Customize it with the extracted content. Write the output to `poster/index.html`.
+### Step 5: Generate the poster HTML
 
-### Step 6: Iterate with the user
-After generating the first draft, expect feedback. The user will likely want to adjust:
-- Layout, spacing, or column balance
-- Which figures to include or swap
-- Text content (too much, too little, wording)
-- Colors, fonts, or visual style
-- Figure sizing or placement
+Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. The template is a React app with:
 
-When the user gives feedback, make targeted edits to `poster/index.html` (and swap images in `poster/` if needed). Don't regenerate from scratch unless asked — preserve their previous feedback. Keep iterating until they're happy.
+**Architecture:**
+- `CARD_REGISTRY` — defines each card's content (title, color, JSX body)
+- `DEFAULT_LAYOUT` — defines column structure and card ordering
+- `DEFAULT_LOGOS` — institutional logos for the header
+- React state manages layout, with localStorage persistence
+- `window.posterAPI` exposes functions for programmatic control
+
+**Key things to customize:**
+1. Update `CARD_REGISTRY` with the paper's content (each section is a card)
+2. Update `DEFAULT_LAYOUT` with the aspect-ratio-optimized column assignments
+3. Update `DEFAULT_LOGOS` with the user's institutional logos
+4. Update `DEFAULT_FONT_SCALE` (start at 1.3, user can adjust with A-/A+ buttons)
+5. Update the header (title, authors, affiliations, conference badge, QR codes)
+6. Update `@page { size: WIDTHmm HEIGHTmm; }` and `body { width: WIDTHmm; height: HEIGHTmm; }` for the poster dimensions
+7. Update `posterAPI` fit() function with the same dimensions
+
+**Card content patterns:**
+- Figure card: `<div className="fig"><div className="fig-wrap"><img src="file.png" alt="..." /></div><div className="cap"><b>Caption title.</b> Description.</div></div>`
+- Text card: `<div className="hl"><p>Highlight text</p></div><ul><li>Point 1</li></ul>`
+- Table card: `<table><thead>...</thead><tbody>...</tbody></table>` with `className="best"` on winning cells
+- Equation card: `<div className="eq">{'$LaTeX equation$'}</div>` (escape backslashes in JSX)
+
+**Critical CSS rules for zero whitespace:**
+- Images MUST use `width:100%; height:100%; object-fit:contain` (NOT max-width/max-height — those prevent upscaling)
+- Each column must always have one card with `grow: true` (flex:1) that fills remaining space
+- The `isCardGrow()` function ensures this automatically — if no card has grow, the last card gets it
+
+**Viewport scaling:**
+- Use `translate() + scale()` on body to center and fit the poster to any browser viewport
+- `transform-origin: top left` is critical
+- `@media print` must set `transform: none !important` for correct print resolution
+- `getBoundingClientRect()` returns SCALED values — always divide by `currentScaleRef.current` in resize handlers
+
+### Step 6: Auto-optimize layout with Playwright
+
+After generating, use Playwright to measure whitespace and find optimal column widths:
+
+```python
+from playwright.sync_api import sync_playwright
+import os
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    page = browser.new_page(viewport={'width': 3200, 'height': 2260})
+    page.goto('file://' + os.path.abspath('poster/index.html'))
+    page.wait_for_load_state('networkidle')
+    page.wait_for_timeout(3000)
+
+    # Measure whitespace
+    waste = page.evaluate('window.posterAPI.getWaste()')
+    print(f"Total waste: {waste['total']}px")
+    for d in waste['details']:
+        print(f"  {d['card']}: H={d['wasteH']} W={d['wasteW']} ({d['pct']}%)")
+
+    # Try different column widths to minimize waste
+    best_waste = waste['total']
+    best_c1, best_c3 = 300, 230
+    for c1 in range(200, 350, 10):
+        for c3 in range(160, 280, 10):
+            page.evaluate(f'window.posterAPI.setColumnWidth("col1", {c1})')
+            page.evaluate(f'window.posterAPI.setColumnWidth("col3", {c3})')
+            page.wait_for_timeout(30)
+            w = page.evaluate('window.posterAPI.getWaste().total')
+            if w < best_waste:
+                best_waste = w
+                best_c1, best_c3 = c1, c3
+
+    # Apply best and screenshot
+    page.evaluate(f'window.posterAPI.setColumnWidth("col1", {best_c1})')
+    page.evaluate(f'window.posterAPI.setColumnWidth("col3", {best_c3})')
+    page.wait_for_timeout(500)
+    page.screenshot(path='/tmp/poster_screenshot.png')
+
+    # Also try swapping cards between columns
+    page.evaluate('window.posterAPI.swapCards("cardA", "cardB")')
+    # ... measure waste again ...
+
+    browser.close()
+```
+
+Then read `/tmp/poster_screenshot.png` to visually inspect. **Iterate multiple times** — take screenshots, fix issues, re-screenshot until the poster has minimal blank space.
+
+After finding optimal values, bake them into `DEFAULT_LAYOUT`, `DEFAULT_CARD_HEIGHTS`, etc. in the HTML.
+
+### Step 7: Generate PDF and verify
+
+```python
+page.pdf(
+    path='poster/poster.pdf',
+    width='841mm', height='594mm',  # match poster dimensions
+    margin={'top':'0','right':'0','bottom':'0','left':'0'},
+    print_background=True
+)
+```
+
+Convert the PDF to PNG and read it to verify it renders at full resolution:
+```bash
+sips -s format png poster/poster.pdf --out /tmp/poster_pdf_check.png -Z 3000
+```
+
+### Step 8: Open and iterate with user
+
+Open the poster in the browser:
+```bash
+open poster/index.html
+```
+
+**Explain the editing controls to the user:**
+- **Preview** — toggle edit UI off to see exactly how it will print
+- **A-/A+** — adjust font size globally
+- **Drag column dividers** (vertical blue bars) — resize columns left/right
+- **Drag row dividers** (horizontal blue bars) — resize cards up/down within columns
+- **Click-to-swap** — click one card's diamond handle (turns orange), then click another's to swap them
+- **Move/insert** — click a card's handle, then click a dashed orange drop zone to move it there
+- **Save** — downloads `poster-config.json`
+- **Copy Config** — copies layout JSON to clipboard
+- **Reset** — restore defaults
+
+**Proactively suggest improvements:** After showing the first draft, suggest specific changes:
+- "The model architecture card has some whitespace — try dragging the row divider above it down to give it less space"
+- "The completion figure might look better in column 2 since it's wider — try clicking its diamond, then clicking a drop zone in column 2"
+- "You might want to bump the font size with A+ a few times"
+
+**Encourage the feedback loop:** Tell the user:
+> Try rearranging the poster in your browser! When you're happy with the layout, click **Copy Config** in the top-right toolbar and paste it here — I'll bake those changes into the defaults so they persist.
+- **Save** — download `poster-config.json`
+- **Copy Config** — copy layout JSON to clipboard to paste to Claude
+- **Reset** — restore defaults
+
+When the user pastes a config JSON, update `DEFAULT_LAYOUT`, `DEFAULT_CARD_HEIGHTS`, `DEFAULT_FONT_SCALE`, and `DEFAULT_LOGOS` in the HTML to match. Also write it to `poster-config.json`.
+
+### Step 9: Push to GitHub (optional)
+
+If the user provides a GitHub repo URL:
+```bash
+cd poster
+git init
+git remote add origin <REPO_URL>
+git add .
+git commit -m "Poster: <paper title>"
+git push -u origin main
+```
 
 ## Important guidelines
 
-- **Keep text minimal.** Posters are visual. Use bullet points, not paragraphs. Aim for someone to understand the work in 2 minutes.
-- **Prioritize figures.** Include the most impactful figures. Copy them into `poster/` and convert to PNG.
-- **Print-optimized CSS.** Use `@media print` and `@page` rules. Set page size to match the user's specified dimensions. Use `print-color-adjust: exact` for backgrounds.
-- **Color scheme.** If reference posters or the author website suggest a palette, use that as a starting point. Otherwise, pick a reasonable initial palette and show it to the user for feedback. Propose a few color options (with hex codes) and let them choose before finalizing.
-- **Font sizes for print.** Scale proportionally to poster size. For A0 portrait: title ~60-72pt, headers ~32-36pt, body ~20-24pt, captions ~16-18pt. For smaller posters (e.g., A1 landscape), scale down accordingly.
-- **QR code.** Use a QR code image (generate via API or embed an SVG). Link to the project page.
-- **Equations.** Use KaTeX (loaded via CDN) for math rendering. Only include 1-2 key equations.
-- **Tables.** Style tables cleanly with alternating row colors. Bold the best results.
-- **Self-contained.** Everything in `poster/` should work when opened locally. Use relative paths for images, CDN for fonts/KaTeX.
-- **Test.** After generating, tell the user to open `poster/index.html` in Chrome and print (margins: none, background graphics: on).
+- **No blank space.** This is the #1 priority. Use aspect-ratio-aware column assignment, `width:100%; height:100%; object-fit:contain` on images, auto-grow cards, and the Playwright optimizer. Iterate until waste is minimal.
+- **Keep text minimal.** Posters are visual — bullet points, not paragraphs. 2-minute understanding.
+- **Match the reference style.** If the reference poster is light/clean, don't use a dark theme. Match the overall aesthetic.
+- **Font scaling.** All text sizes use `calc(Xpt * var(--font-scale))` so the A-/A+ buttons work. Start with `--font-scale: 1.3` and let the user adjust.
+- **Print-optimized CSS.** `@media print` hides all edit UI and sets `transform: none !important`. `@page` sets exact dimensions.
+- **Posterskill QR.** Always include a QR code linking to `https://github.com/ethanweber/posterskill` in the header with the label "Poster made with my Claude skill".
+- **No acknowledgements footer.** Keep the poster clean — no footer by default.
+- **Logos in header.** Download institutional logos from the author's website, save to `poster/logos/`, and list them in `DEFAULT_LOGOS`. They're auto-inverted to white via CSS filter.
+- **Self-contained.** No build step, no npm, no server. Single HTML file with CDN dependencies. Works when opened directly as `file://`.
+- **Equations.** Use KaTeX (loaded via CDN). Escape backslashes in JSX strings: `{'$\\mathcal{E}$'}`.
 
 ## Figure handling
 - Always copy needed figures into `poster/` — don't reference `overleaf/` paths in the HTML.
-- Convert PDFs to PNGs: `sips -s format png input.pdf --out poster/output.png` (macOS) or `pdftoppm -png -r 300 input.pdf poster/output` (Linux).
-- If the project website has higher-res or more poster-friendly images, download those instead: `curl -o poster/filename.png URL`.
-- PNGs already in `overleaf/figures/` (e.g., `model-architecture-all.png`) can be copied directly.
+- Convert PDFs to PNGs at high resolution: `sips -s format png input.pdf --out poster/output.png -Z 3000`
+- Download website images via Playwright's `page.request.get()` (not curl — websites often redirect).
+- Measure aspect ratios with `sips -g pixelWidth -g pixelHeight` and assign to columns accordingly.
+
+## User workflow for config updates
+
+The user can adjust the poster in their browser and share changes back:
+1. User clicks "Copy Config" in the toolbar
+2. User pastes the JSON in chat
+3. Claude updates `DEFAULT_LAYOUT`, `DEFAULT_CARD_HEIGHTS`, `DEFAULT_FONT_SCALE`, `DEFAULT_LOGOS` in `index.html` to match
+4. Claude also writes the config to `poster-config.json`
+5. User refreshes and clicks "Reset" to load new defaults
+
+## Programmatic API (window.posterAPI)
+
+Available in the browser console or via Playwright:
+- `swapCards(id1, id2)` — swap two cards (works across columns)
+- `moveCard(cardId, targetColId, position)` — move a card to a specific position
+- `setColumnWidth(colId, widthMm)` — set column width (null for flex)
+- `setCardHeight(cardId, heightMm)` — set explicit card height (null to reset)
+- `setFontScale(scale)` — set global font scale
+- `getWaste()` — measure total whitespace in figure containers
+- `getLayout()` — get current layout with rendered dimensions
+- `getConfig()` — get full serializable config
+- `resetLayout()` — restore defaults
+- `saveConfig()` — trigger download of poster-config.json
+- `copyConfig()` — copy config JSON to clipboard
