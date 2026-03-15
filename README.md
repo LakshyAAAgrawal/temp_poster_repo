@@ -1,6 +1,6 @@
 # posterskill
 
-A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper. The poster is an interactive React-based editor — a single HTML file you open in your browser. No build step needed.
+A [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that generates print-ready conference posters from your paper. Point it at your Overleaf source and project website — it extracts the content, downloads figures, fetches logos, and builds an interactive poster you can edit in your browser. Single HTML file, no build step.
 
 ## Quick start
 
