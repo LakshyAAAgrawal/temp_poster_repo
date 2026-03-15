@@ -10,38 +10,30 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, Agent
 
 Generate a professional HTML poster. User notes: $ARGUMENTS
 
-The poster is an HTML page styled with CSS for print. The user prints the page to PDF to get the final poster.
+The poster is a self-contained website in the `poster/` directory. Open `poster/index.html` in a browser to preview, then print to PDF.
 
 ## Project folder structure
 
-The skill expects this directory layout:
-
 ```
-poster/
-├── overleaf/          # Paper source from Overleaf
-│   ├── paper.tex      # Main paper content
-│   ├── main.tex       # Document root (inputs paper.tex)
-│   ├── preamble.tex
-│   ├── figures/       # Paper figures
-│   ├── tables/
+posterskill/
+├── overleaf/              # Paper source from Overleaf
+│   ├── paper.tex
+│   ├── figures/
 │   └── ...
-├── references/        # Reference posters for style matching
-│   ├── *.pdf
-│   ├── *.png
-│   └── ...
-├── assets/            # GENERATED: figures/images copied here for the poster
-│   ├── teaser.png
+├── references/            # Reference posters for style matching
+│   └── *.pdf, *.png
+├── poster/                # GENERATED: self-contained poster website
+│   ├── index.html         # The poster
+│   ├── teaser.png         # Copied/converted figures
 │   ├── architecture.png
 │   ├── qr.png
 │   └── ...
-├── poster.html        # GENERATED: the poster
 └── .claude/skills/make-poster/
 ```
 
 - **`overleaf/`** contains the paper source. Read `paper.tex` and any files it `\input{}`s.
 - **`references/`** contains example posters showing the user's preferred visual style. Read/view ALL files in this folder to match their design language.
-- **`assets/`** is created during generation. Figures are copied/converted here from overleaf, the project website, or the author website. The poster HTML references these.
-- The generated poster is written to the project root as `poster.html`.
+- **`poster/`** is the generated output — a self-contained website. All figures and assets live alongside `index.html` so relative paths just work. Open in a browser to preview, print to get the final PDF.
 
 ## Inputs
 
@@ -127,17 +119,17 @@ Adapt the layout to the user's formatting requirements. If not specified, ask fi
 
 Adjust the CSS grid to match the requested number of columns. Scale font sizes proportionally to the poster dimensions.
 
-### Step 4: Gather assets
-Copy any figures, images, or logos you need into an `assets/` directory at the project root. Sources:
+### Step 4: Gather assets into `poster/`
+Create the `poster/` directory and copy any figures, images, or logos there. Sources:
 - **From `overleaf/figures/`** - copy and convert PDFs to PNGs (use `sips -s format png` on macOS or `pdftoppm`). Keep filenames descriptive.
 - **From the project website** - download hosted images (use `curl`) that are higher quality or more poster-appropriate than the paper figures.
 - **From the author website** - download logos, headshots, or branding assets if useful.
-- **QR code** - generate and save to `assets/qr.png`.
+- **QR code** - generate and save to `poster/qr.png`.
 
-Reference figures in `poster.html` as `assets/filename.png`. This keeps the poster self-contained and avoids broken paths.
+All assets live in `poster/` alongside `index.html`, so reference them with simple relative paths like `<img src="teaser.png">`.
 
 ### Step 5: Generate the HTML poster
-Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. Customize it with the extracted content. Write the output to `poster.html` in the project root.
+Use the template at `${{CLAUDE_SKILL_DIR}}/template.html` as a starting point. Customize it with the extracted content. Write the output to `poster/index.html`.
 
 ### Step 6: Iterate with the user
 After generating the first draft, expect feedback. The user will likely want to adjust:
@@ -147,23 +139,20 @@ After generating the first draft, expect feedback. The user will likely want to 
 - Colors, fonts, or visual style
 - Figure sizing or placement
 
-When the user gives feedback, make targeted edits to `poster.html` (and `assets/` if swapping figures). Don't regenerate from scratch unless asked — preserve their previous feedback. Keep iterating until they're happy.
+When the user gives feedback, make targeted edits to `poster/index.html` (and swap images in `poster/` if needed). Don't regenerate from scratch unless asked — preserve their previous feedback. Keep iterating until they're happy.
 
 ## Important guidelines
 
 - **Keep text minimal.** Posters are visual. Use bullet points, not paragraphs. Aim for someone to understand the work in 2 minutes.
-- **Prioritize figures.** Include the most impactful figures. Copy them into `assets/` and convert to PNG. Reference as `assets/filename.png` in the HTML.
+- **Prioritize figures.** Include the most impactful figures. Copy them into `poster/` and convert to PNG.
 - **Print-optimized CSS.** Use `@media print` and `@page` rules. Set page size to match the user's specified dimensions. Use `print-color-adjust: exact` for backgrounds.
 - **Color scheme.** Use the reference poster colors, user-specified colors, or conference branding. Fall back to the conference color schemes below if nothing else is specified.
 - **Font sizes for print.** Scale proportionally to poster size. For A0 portrait: title ~60-72pt, headers ~32-36pt, body ~20-24pt, captions ~16-18pt. For smaller posters (e.g., A1 landscape), scale down accordingly.
 - **QR code.** Use a QR code image (generate via API or embed an SVG). Link to the project page.
 - **Equations.** Use KaTeX (loaded via CDN) for math rendering. Only include 1-2 key equations.
 - **Tables.** Style tables cleanly with alternating row colors. Bold the best results.
-- **Self-contained.** The HTML file should work when opened locally in a browser. Use relative paths for local figures and CDN for fonts/KaTeX.
-- **Test.** After generating, remind the user to open in Chrome and use Print > Save as PDF with:
-  - Paper size: set to match their specified dimensions (or use "Custom" in Chrome print dialog)
-  - Margins: None
-  - Background graphics: ON
+- **Self-contained.** Everything in `poster/` should work when opened locally. Use relative paths for images, CDN for fonts/KaTeX.
+- **Test.** After generating, tell the user to open `poster/index.html` in Chrome and print (margins: none, background graphics: on).
 
 ## Conference color schemes (fallback)
 - **3DV**: `#2178B5` (steel blue)
@@ -174,7 +163,7 @@ When the user gives feedback, make targeted edits to `poster.html` (and `assets/
 - **SIGGRAPH**: `#333333` (dark gray)
 
 ## Figure handling
-- Always copy needed figures into `assets/` — don't reference `overleaf/` paths directly in the HTML.
-- Convert PDFs to PNGs: `sips -s format png input.pdf --out assets/output.png` (macOS) or `pdftoppm -png -r 300 input.pdf assets/output` (Linux).
-- If the project website has higher-res or more poster-friendly images, download those instead: `curl -o assets/filename.png URL`.
+- Always copy needed figures into `poster/` — don't reference `overleaf/` paths in the HTML.
+- Convert PDFs to PNGs: `sips -s format png input.pdf --out poster/output.png` (macOS) or `pdftoppm -png -r 300 input.pdf poster/output` (Linux).
+- If the project website has higher-res or more poster-friendly images, download those instead: `curl -o poster/filename.png URL`.
 - PNGs already in `overleaf/figures/` (e.g., `model-architecture-all.png`) can be copied directly.

@@ -12,7 +12,7 @@ git clone https://git.overleaf.com/YOUR_PROJECT_ID overleaf   # your paper
 Optionally add reference posters for style matching:
 
 ```bash
-mkdir references && cp ~/some_poster.pdf references/
+cp ~/some_poster.pdf references/
 ```
 
 Then in Claude Code:
@@ -21,7 +21,7 @@ Then in Claude Code:
 /make-poster
 ```
 
-It reads your paper, fetches your project website, matches your reference style, and outputs `poster.html`. Print to PDF from Chrome (margins: none, background graphics: on).
+It reads your paper, fetches your project website, matches your reference style, and generates a `poster/` directory. Open `poster/index.html` in a browser to preview, then print to PDF.
 
 ## Inputs
 
