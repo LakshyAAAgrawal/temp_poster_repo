@@ -146,21 +146,13 @@ When the user gives feedback, make targeted edits to `poster/index.html` (and sw
 - **Keep text minimal.** Posters are visual. Use bullet points, not paragraphs. Aim for someone to understand the work in 2 minutes.
 - **Prioritize figures.** Include the most impactful figures. Copy them into `poster/` and convert to PNG.
 - **Print-optimized CSS.** Use `@media print` and `@page` rules. Set page size to match the user's specified dimensions. Use `print-color-adjust: exact` for backgrounds.
-- **Color scheme.** Use the reference poster colors, user-specified colors, or conference branding. Fall back to the conference color schemes below if nothing else is specified.
+- **Color scheme.** If reference posters or the author website suggest a palette, use that as a starting point. Otherwise, pick a reasonable initial palette and show it to the user for feedback. Propose a few color options (with hex codes) and let them choose before finalizing.
 - **Font sizes for print.** Scale proportionally to poster size. For A0 portrait: title ~60-72pt, headers ~32-36pt, body ~20-24pt, captions ~16-18pt. For smaller posters (e.g., A1 landscape), scale down accordingly.
 - **QR code.** Use a QR code image (generate via API or embed an SVG). Link to the project page.
 - **Equations.** Use KaTeX (loaded via CDN) for math rendering. Only include 1-2 key equations.
 - **Tables.** Style tables cleanly with alternating row colors. Bold the best results.
 - **Self-contained.** Everything in `poster/` should work when opened locally. Use relative paths for images, CDN for fonts/KaTeX.
 - **Test.** After generating, tell the user to open `poster/index.html` in Chrome and print (margins: none, background graphics: on).
-
-## Conference color schemes (fallback)
-- **3DV**: `#2178B5` (steel blue)
-- **CVPR**: `#005294` (dark blue)
-- **ICCV**: `#008040` (green)
-- **NeurIPS**: `#663399` (purple)
-- **ECCV**: `#B32626` (red)
-- **SIGGRAPH**: `#333333` (dark gray)
 
 ## Figure handling
 - Always copy needed figures into `poster/` — don't reference `overleaf/` paths in the HTML.
