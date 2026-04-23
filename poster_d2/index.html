@@ -339,12 +339,12 @@ const CARD_REGISTRY = {
         <div className="hl"><p>Always picking the current best traps GEPA in a <b>local optimum</b>. Sampling from the <b>Pareto frontier</b> of "best-per-task" candidates preserves complementary strategies — <b>+8.2%</b> over SelectBest, <b>+7.3%</b> over Beam Search.</p></div>
         <div className="fig-row">
           <div className="fig">
-            <div className="fig-wrap"><img src="pareto_linear_tree.png" alt="SelectBest: linear chain stuck at a dominant ancestor" /></div>
-            <div className="cap"><b>(a) SelectBest.</b> Candidate tree collapses into a narrow chain — all effort concentrated on descendants of one ancestor. The search never revisits overlooked branches.</div>
+            <div className="fig-wrap"><img src="pareto_linear_tree.png" alt="SelectBest Candidate: fan of siblings off one best ancestor" /></div>
+            <div className="cap"><b>(a) SelectBest Candidate.</b> One early winner (1) dominates; every subsequent proposal mutates <em>that same</em> parent. The search collapses into a <b>local optimum</b> — depth 1, no diverse lineages.</div>
           </div>
           <div className="fig">
-            <div className="fig-wrap"><img src="pareto_gepa_tree.png" alt="Pareto: branchy tree exploring diverse lineages" /></div>
-            <div className="cap"><b>(b) Pareto (GEPA).</b> Sampling weighted by how many training items a candidate leads grows a <b>branchy</b> tree that illuminates the frontier, not just the mode.</div>
+            <div className="fig-wrap"><img src="pareto_gepa_tree.png" alt="Pareto (GEPA): deep branchy tree exploring diverse lineages" /></div>
+            <div className="cap"><b>(b) Pareto-based sampling (GEPA).</b> Weighting by how many training items each candidate leads keeps several rival lineages alive — <b>depth 4+, many branches</b> — and finds the true best (12, 96.3%). PUPA, GPT-4.1 Mini.</div>
           </div>
         </div>
       </>
