@@ -283,22 +283,13 @@ const CARD_REGISTRY = {
         <div className="prompt gepa">
           <div className="hdr">GEPA-optimized prompt (GPT-4.1 Mini, HotpotQA, excerpted)</div>
           <div className="body">
-            <b>You will be given two input fields:</b> <span className="mono">question</span> and <span className="mono">summary_1</span>. <b>Your task:</b> generate a new search query <span className="mono">query</span> <em>optimized for the second hop</em> of a multi-hop retrieval system.
+            <b>Given</b> <span className="mono">question</span> and <span className="mono">summary_1</span>, produce a <span className="mono">query</span> <em>optimized for the second hop</em> of a multi-hop retrieval system.
             <ul>
-              <li>The original user question is typically complex and requires information from multiple documents to answer.</li>
-              <li>The first-hop query is the original question (used to retrieve initial documents).</li>
-              <li>Your goal: retrieve documents <em>not</em> found in the first hop but necessary to fully answer the question.</li>
+              <li>First-hop docs typically cover <span className="kw">one entity or aspect</span>; the remaining relevant docs involve connected or higher-level concepts mentioned in <span className="mono">summary_1</span> but not explicitly asked.</li>
+              <li>Don't paraphrase the question or restate facts already in <span className="mono">summary_1</span> — target <span className="kw">broader / complementary entities</span>.</li>
+              <li>E.g. if <span className="mono">summary_1</span> names a small parish but the question asks for a wider region's population, query the <em>wider region</em> ("Madeira archipelago population in 2011").</li>
             </ul>
-            <b>Key observations &amp; lessons:</b>
-            <ul>
-              <li>First-hop documents often cover <span className="kw">one entity or aspect</span>; remaining relevant docs involve connected or higher-level concepts mentioned in <span className="mono">summary_1</span> but not explicitly asked.</li>
-              <li>Avoid merely paraphrasing the question or restating known facts from <span className="mono">summary_1</span>.</li>
-              <li>Infer <span className="kw">what broader or related entities</span> might provide the crucial missing information.</li>
-              <li>Example: if <span className="mono">summary_1</span> describes the population of a small civil parish but the question asks for the total population of the wider region, target the wider region (e.g., "Madeira archipelago population in 2011").</li>
-            </ul>
-            <b>How to build the query:</b> identify entities / topics in <span className="mono">summary_1</span> that differ from first-hop docs; reframe the query to mention <span className="kw">broader or complementary entities</span> connected to the original question; keep key context from the question but shift focus to the missing piece.
-            <br /><br />
-            <b>Output:</b> a concise factual query that targets the missing entity/concept; <em>do not</em> include the original question or simply rephrase it; <em>do not</em> duplicate information well-covered by the first hop…
+            <b>Output:</b> a concise factual query that fills the missing piece; never duplicate first-hop coverage…
           </div>
         </div>
       </>
@@ -308,7 +299,7 @@ const CARD_REGISTRY = {
   how_it_works: {
     title: 'How It Works: the GEPA Algorithm',
     color: 'teal',
-    grow: true,
+    grow: false,
     body: (
       <>
         <div className="algo">
@@ -319,12 +310,8 @@ const CARD_REGISTRY = {
           <div className="step"><span className="tag">3. Repeatedly:</span></div>
           <div className="step indent">a. Select a prompt (from the Pareto frontier) to try to improve.</div>
           <div className="step indent">b. Run the system on a minibatch of dev examples, noting intermediate feedback.</div>
-          <div className="step indent">c. Call an LM to propose alternatives — "mutating" one current prompt, or "crossing over" two.</div>
+          <div className="step indent">c. Call an LM to propose alternatives — "mutating" one prompt, or "crossing over" two.</div>
           <div className="step indent">d. Update the pool based on how candidates score on val (updating the Pareto front).</div>
-        </div>
-        <div className="fig">
-          <div className="fig-wrap"><img src="gepa_algorithm.png" alt="GEPA full algorithm diagram" /></div>
-          <div className="cap"><b>Reflective mutation &amp; system-aware merge</b> propose new candidates; accepted ones join the pool and update the Pareto front.</div>
         </div>
       </>
     ),
@@ -394,23 +381,18 @@ const CARD_REGISTRY = {
     body: (
       <>
         <ul>
-          <li><b>Model scales:</b> 8B open (Qwen3) and frontier closed (GPT-4.1 Mini) — both gain double-digit aggregate %.</li>
+          <li><b>Scales:</b> 8B open (Qwen3) + frontier closed (GPT-4.1 Mini) — both gain double-digit aggregate %.</li>
           <li><b>Domains:</b> multi-hop QA, instruction following, retrieval-augmented verification, privacy-aware delegation, math (AIME / LiveBench).</li>
-          <li><b>Modalities &amp; code:</b> as inference-time search, GEPA writes <b>AMD NPU kernels</b> reaching 70% vector utilization (30.5% mean vs 4.25% for GPT-4o alone) and <b>CUDA kernels</b> that beat PyTorch on 20%+ of KernelBench tasks.</li>
-          <li><b>Adversarial prompts:</b> inverting the reward, GEPA drops GPT-5-Mini's AIME pass@1 from 76% to 10% with a single universal distractor.</li>
+          <li><b>Modalities &amp; code:</b> as inference-time search, GEPA writes <b>AMD NPU kernels</b> at 70% vector utilization (<b>30.5%</b> vs 4.25% base) and <b>CUDA kernels</b> that beat PyTorch on 20%+ of KernelBench tasks.</li>
         </ul>
         <div className="fig-row">
           <div className="fig">
             <div className="fig-wrap"><img src="npueval_vec_util.png" alt="NPU kernel vector utilization" /></div>
-            <div className="cap"><b>AMD NPU kernels.</b> GEPA + GPT-4o: 30.5% mean (vs 4.25% base).</div>
+            <div className="cap"><b>AMD NPU kernels.</b> GEPA + GPT-4o: 30.5% mean vs 4.25% base.</div>
           </div>
           <div className="fig">
             <div className="fig-wrap"><img src="kernelbench_fastp.png" alt="KernelBench fast_p vs budget" /></div>
-            <div className="cap"><b>CUDA KernelBench.</b> <code>fast_p</code> climbs from ~0% → 20%+ as GEPA's search budget grows.</div>
-          </div>
-          <div className="fig">
-            <div className="fig-wrap"><img src="prompt_size_qwen.png" alt="Performance vs prompt size" /></div>
-            <div className="cap"><b>Shorter, better prompts.</b> Up to <b>9.2× shorter</b> than MIPROv2 at higher scores.</div>
+            <div className="cap"><b>CUDA KernelBench.</b> <code>fast_p</code> climbs from ~0% → 20%+ with GEPA budget.</div>
           </div>
         </div>
       </>
@@ -423,16 +405,14 @@ const CARD_REGISTRY = {
     grow: false,
     body: (
       <>
-        <div className="hl"><p>Swap the text artifact: if you can <em>serialize it</em> and <em>score it</em>, GEPA can evolve it. Our follow-up <b><code>optimize_anything</code></b> (Sky Lab) unifies prompts, agent architectures, kernels, schedulers, configs, &amp; SVGs under one API — with a single LLM-based search backend.</p></div>
+        <div className="hl"><p>If you can <em>serialize</em> and <em>score</em> a text artifact, GEPA can evolve it. <b><code>optimize_anything</code></b> (Sky Lab) unifies prompts, agent architectures, kernels, schedulers, configs &amp; SVGs under one API.</p></div>
         <ul>
-          <li><b>Agent architecture discovery</b> (ARC-AGI, Gemini Flash): GEPA evolves a one-step CoT into a 6-step self-refinement agent — <b>32.5% → 89.5%</b> test accuracy.</li>
-          <li><b>Cloud cost optimization</b> (CloudCast routing): <b>-40%</b> cost vs a Dijkstra baseline.</li>
-          <li><b>Scientific discovery</b>: outperforms AlphaEvolve's published solution on circle-packing (n=26).</li>
-          <li><b>Coding-agent skills</b> (Bleve): Claude Sonnet 4.5 resolve rate 94.8% → 100%, -116 s / task.</li>
+          <li><b>Agent architecture discovery</b> (ARC-AGI, Gemini-3-Flash): 1-step CoT → 6-step self-refinement agent, <b>32.5% → 89.5%</b>.</li>
+          <li><b>Cloud cost</b> (CloudCast): <b>-40%</b> vs Dijkstra. &nbsp; <b>Science:</b> beats AlphaEvolve on circle-packing (n=26). &nbsp; <b>Agent skills</b> (Bleve): Sonnet 4.5 → 100%, -116s / task.</li>
         </ul>
         <div className="fig">
           <div className="fig-wrap"><img src="optany_arc_talk.png" alt="ARC-AGI agent architecture discovered by GEPA" /></div>
-          <div className="cap"><b>Agent architecture discovery on ARC-AGI (Gemini-3-Flash).</b> Starting from a single Chain-of-Thought step (<b>32.5%</b>), GEPA evolves a 6-stage self-correcting agent — rule hypothesis → code synthesis → execute &amp; trace → debug &amp; refine → apply — reaching <b>89.5%</b>.</div>
+          <div className="cap"><b>Discovered ARC-AGI agent.</b> Rule hypothesis → code synthesis → execute &amp; trace → debug &amp; refine → apply (<b>32.5% → 89.5%</b>).</div>
         </div>
       </>
     ),
@@ -451,11 +431,11 @@ const DEFAULT_LAYOUT = {
   ],
 };
 const DEFAULT_CARD_HEIGHTS = {
-  motivation: 230,
-  how_it_works: 250,
-  gepa_prompt: 290,
-  main_results: 300,
-  optimize_anything: 310,
+  motivation: 220,
+  how_it_works: 195,
+  gepa_prompt: 215,
+  main_results: 260,
+  optimize_anything: 275,
 };
 const DEFAULT_FONT_SCALE = 3.0;
 
