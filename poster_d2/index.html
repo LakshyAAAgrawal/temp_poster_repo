@@ -47,9 +47,10 @@
   .header .authors sup { font-size:20pt; color:#ffc248; font-weight:700; }
   .header .aff { font-size:22pt; color:rgba(255,255,255,.82); margin-top:2.5mm; font-weight:600; }
   .header .aff sup { color:#ffc248; font-size:16pt; font-weight:800; }
-  .header-logos { display:flex; align-items:center; justify-content:center; gap:7mm; flex-shrink:0; }
-  .header-logos img { height:40mm; object-fit:contain; background:rgba(255,255,255,.92); padding:2mm 3mm; border-radius:2mm; }
-  .header-logos img.wordmark { background:transparent; padding:0; filter:brightness(0) invert(1); }
+  .header-logos { display:flex; align-items:center; justify-content:center; gap:10mm; flex-shrink:0; }
+  .header-logos img { height:32mm; object-fit:contain; background:transparent; padding:0; border-radius:0; }
+  .header-logos img.plate { background:#fff; padding:2mm 3mm; border-radius:2mm; }
+  .header-logos img.wordmark { filter:brightness(0) invert(1); }
   .header-right { display:flex; flex-direction:row; align-items:center; gap:6mm; flex-shrink:0; }
   .badge {
     font-size:22pt; font-weight:900; color:#fff; background:rgba(255,255,255,.22);
@@ -237,26 +238,8 @@ const CARD_REGISTRY = {
           <li>Modern LLMs already read those traces — compiler errors, failed rubrics, reasoning chains — as <b>rich, diagnostic feedback</b>.</li>
           <li>So: <b>can we learn by reflecting on text</b>, not by propagating policy gradients?</li>
         </ul>
-      </>
-    ),
-  },
-
-  main_idea: {
-    title: 'Main Idea: Reflective Prompt Evolution in Text Space',
-    color: 'orange',
-    grow: false,
-    body: (
-      <>
-        <div className="hl"><p>GEPA (<b>Ge</b>netic-<b>Pa</b>reto) learns by reading, reflecting on, and rewriting prompts — <em>entirely in natural language</em>. No weight updates, no policy gradients.</p></div>
-        <ul>
-          <li><b>Reflect:</b> LLM reads execution + evaluation traces to diagnose why a rollout failed or succeeded.</li>
-          <li><b>Mutate:</b> propose a new prompt incorporating the lesson as <em>declarative instructions</em>.</li>
-          <li><b>Evolve:</b> build an ancestry tree; descendants inherit lessons and survive only if they score better.</li>
-          <li><b>Illuminate:</b> sample from the <b>Pareto frontier</b> across training instances to avoid local optima.</li>
-        </ul>
-        <div className="fig">
-          <div className="fig-wrap"><img src="reflection_diagram.png" alt="Reflective mutation: trace → feedback → proposed prompt" /></div>
-          <div className="cap"><b>Reflective mutation.</b> Run system on a dev minibatch → collect trace &amp; feedback → call an LM to rewrite the selected module's prompt.</div>
+        <div className="hl" style={{marginTop:'3mm',background:'var(--blue-light)',borderLeftColor:'var(--blue)'}}>
+          <p><b>GEPA (Genetic-Pareto):</b> read the rollout traces, reflect in natural language, and rewrite the system's prompts — <em>no weight updates, no gradients</em>.</p>
         </div>
       </>
     ),
@@ -348,15 +331,21 @@ const CARD_REGISTRY = {
   },
 
   pareto: {
-    title: 'Pareto-based Candidate Selection Matters',
+    title: 'Pareto-based Selection Escapes Local Optima',
     color: 'red',
     grow: false,
     body: (
       <>
-        <div className="hl"><p>Always picking the current best traps GEPA in a local optimum. Sampling from the <b>Pareto frontier</b> of "best-per-task" candidates preserves complementary strategies — and gives up to <b>+8.2% aggregate</b> over SelectBest and <b>+7.3%</b> over Beam Search.</p></div>
-        <div className="fig">
-          <div className="fig-wrap"><img src="pareto_sampling.png" alt="Pareto-based candidate selection" /></div>
-          <div className="cap"><b>Pareto illumination.</b> For each training item, track the top-scoring candidate; sample stochastically weighted by how many items a candidate leads.</div>
+        <div className="hl"><p>Always picking the current best traps GEPA in a <b>local optimum</b>. Sampling from the <b>Pareto frontier</b> of "best-per-task" candidates preserves complementary strategies — <b>+8.2%</b> over SelectBest, <b>+7.3%</b> over Beam Search.</p></div>
+        <div className="fig-row">
+          <div className="fig">
+            <div className="fig-wrap"><img src="pareto_linear_tree.png" alt="SelectBest: linear chain stuck at a dominant ancestor" /></div>
+            <div className="cap"><b>(a) SelectBest.</b> Candidate tree collapses into a narrow chain — all effort concentrated on descendants of one ancestor. The search never revisits overlooked branches.</div>
+          </div>
+          <div className="fig">
+            <div className="fig-wrap"><img src="pareto_gepa_tree.png" alt="Pareto: branchy tree exploring diverse lineages" /></div>
+            <div className="cap"><b>(b) Pareto (GEPA).</b> Sampling weighted by how many training items a candidate leads grows a <b>branchy</b> tree that illuminates the frontier, not just the mode.</div>
+          </div>
         </div>
       </>
     ),
@@ -442,8 +431,8 @@ const CARD_REGISTRY = {
           <li><b>Coding-agent skills</b> (Bleve): Claude Sonnet 4.5 resolve rate 94.8% → 100%, -116 s / task.</li>
         </ul>
         <div className="fig">
-          <div className="fig-wrap"><img src="optany_arc_arch.png" alt="Discovered ARC-AGI agent architecture" /></div>
-          <div className="cap"><b>Discovered ARC-AGI agent (Gemini Flash).</b> GEPA evolves 1-step CoT → 6-step: induce rule → program → test → debug → refine. <b>32.5% → 89.5%</b> on the held-out public eval.</div>
+          <div className="fig-wrap"><img src="optany_arc_talk.png" alt="ARC-AGI agent architecture discovered by GEPA" /></div>
+          <div className="cap"><b>Agent architecture discovery on ARC-AGI (Gemini-3-Flash).</b> Starting from a single Chain-of-Thought step (<b>32.5%</b>), GEPA evolves a 6-stage self-correcting agent — rule hypothesis → code synthesis → execute &amp; trace → debug &amp; refine → apply — reaching <b>89.5%</b>.</div>
         </div>
       </>
     ),
@@ -456,27 +445,24 @@ const CARD_REGISTRY = {
    ================================================================ */
 const DEFAULT_LAYOUT = {
   columns: [
-    { id: 'col1', widthMm: 600, cards: ['motivation', 'main_idea', 'sample_efficiency'] },
-    { id: 'col2', widthMm: null, cards: ['gepa_prompt', 'how_it_works', 'pareto'] },
-    { id: 'col3', widthMm: 600, cards: ['main_results', 'scale_modality_domain', 'optimize_anything'] },
+    { id: 'col1', widthMm: 560, cards: ['motivation', 'sample_efficiency'] },
+    { id: 'col2', widthMm: null, cards: ['how_it_works', 'gepa_prompt', 'pareto'] },
+    { id: 'col3', widthMm: 620, cards: ['main_results', 'scale_modality_domain', 'optimize_anything'] },
   ],
 };
 const DEFAULT_CARD_HEIGHTS = {
-  motivation: 185,
-  main_idea: 320,
-  gepa_prompt: 300,
-  pareto: 200,
-  main_results: 310,
+  motivation: 230,
+  how_it_works: 250,
+  gepa_prompt: 290,
+  main_results: 300,
   optimize_anything: 310,
 };
 const DEFAULT_FONT_SCALE = 3.0;
 
 const DEFAULT_LOGOS = [
-  { src: 'logos/berkeley.svg', alt: 'UC Berkeley', heightMm: 40 },
-  { src: 'logos/stanford.png',  alt: 'Stanford',   heightMm: 40 },
-  { src: 'logos/mit.png',       alt: 'MIT',        heightMm: 40 },
-  { src: 'logos/notre_dame.png',alt: 'Notre Dame', heightMm: 40 },
-  { src: 'logos/databricks.png',alt: 'Databricks', heightMm: 20, wordmark: true },
+  { src: 'logos/sky_horizontal.png', alt: 'UC Berkeley Sky Computing Lab', heightMm: 30 },
+  { src: 'logos/dspy_logo.png',      alt: 'DSPy',                          heightMm: 34, plate: true },
+  { src: 'logos/gepa_white.svg',     alt: 'GEPA',                          heightMm: 36 },
 ];
 
 /* ================================================================
@@ -633,7 +619,7 @@ function PosterApp() {
         </div>
         {logos.length > 0 && (
           <div className="header-logos">
-            {logos.map((logo, i) => (<img key={i} src={logo.src} alt={logo.alt} className={logo.wordmark ? 'wordmark' : ''} style={{height:(logo.heightMm||40)+'mm'}} />))}
+            {logos.map((logo, i) => { const cls=[logo.wordmark&&'wordmark',logo.plate&&'plate'].filter(Boolean).join(' '); return (<img key={i} src={logo.src} alt={logo.alt} className={cls} style={{height:(logo.heightMm||32)+'mm'}} />); })}
           </div>
         )}
         <div className="header-right">
