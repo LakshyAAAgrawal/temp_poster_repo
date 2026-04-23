@@ -1,0 +1,245 @@
+Starting from a one-step ChainOfThought system to solve ARC-AGI tasks, GEPA was able to evolve an elaborate 5-step AI system, that performs the following steps:
+\begin{enumerate}
+    \item Induce Natural Language Rule from training examples using LLM.
+    \item Generate a python program based on the induced rule using LLM.
+    \item Execute the python program on training examples, identifying failures and gathering feedback text from its execution and evaluation.
+    \item If there are any observed failures on the training examples, use an LLM to improve the python program with text feedback.
+    \item Execute the final python program on test inputs, and return outputs.
+\end{enumerate}
+
+This 5-step system evolved by GEPA improved Gemini-2.5-Pro's performance on ARC-AGI-1 from 44\% to 49.5\%. We present the full system evolved by GEPA:
+\begin{instructbox}[\incode{ARC-AGI Gemini-2.5-Pro agent}]
+Base Agent:
+\begin{lstlisting}[breakindent=0pt, breaklines=true, breakatwhitespace=true, frame=single, backgroundcolor=\color{gray!10}]
+import dspy
+from typing import List
+import pydantic
+
+MATRIX = List[List[int]]
+
+class TrainingExample(pydantic.BaseModel):
+    input: MATRIX
+    output: MATRIX
+
+class SolveTaskSignature(dspy.Signature):
+    training_examples: List[TrainingExample] = dspy.InputField(description="Input and output examples demonstrating the task to be performed.")
+    test_inputs: List[MATRIX] = dspy.InputField(description="Input matrices to be solved following the task described in the training examples.")
+    test_outputs: List[MATRIX] = dspy.OutputField(description="Output matrices corresponding to the test inputs.")
+
+program = dspy.ChainOfThought(SolveTaskSignature)
+\end{lstlisting}
+
+GEPA Evolved Agent:
+\begin{lstlisting}[breakindent=0pt, breaklines=true, breakatwhitespace=true, frame=single, backgroundcolor=\color{blue!10}]
+import dspy
+from typing import List, Tuple, Optional
+import pydantic
+import copy
+import traceback
+
+# Define type aliases and pydantic models for clarity and structure.
+MATRIX = List[List[int]]
+
+class TrainingExample(pydantic.BaseModel):
+    input: MATRIX
+    output: MATRIX
+
+# --- Signatures ---
+
+class HypothesizeRule(dspy.Signature):
+    """
+    Analyze the provided input/output matrix pairs from the Abstraction and Reasoning Corpus (ARC).
+    Deduce the single, underlying transformation rule that converts each input matrix to its corresponding output matrix.
+    Describe this rule in clear, step-by-step, unambiguous English. Focus on the logic, not Python code.
+
+    **Successful Strategies to Consider:**
+    - **Start Simple:** First, check for simple rules. Is there a global transformation (e.g., rotation, reflection)? Is the output a subgrid of the input? Is a single color being replaced?
+    - **Look for Separators:** Check if the grid is partitioned by separator lines (e.g., rows or columns that are all one color, usually black). The transformation might be applied to each section independently.
+    - **Identify Objects:** Group contiguous non-background pixels into objects. Analyze how these objects are created, destroyed, or modified. Consider their properties: color, shape, size, position.
+    - **Find Marker Points:** Look for special 'marker' pixels (e.g., a uniquely colored pixel) that might define the geometry of an operation, like the corners of a shape to be drawn.
+    - **Relate Input to Output:** How do the properties of the input grid (dimensions, colors, object counts) relate to the output grid?
+    - **Avoid Over-complication:** Propose the simplest rule that explains ALL training examples. Do not suggest overly complex mathematical or recursive patterns unless absolutely necessary and supported by every example.
+    """
+    training_examples: List[TrainingExample] = dspy.InputField(desc="A list of input/output pairs demonstrating the transformation rule.")
+    rule_description: str = dspy.OutputField(desc="A step-by-step English description of the transformation rule.")
+
+class ImplementRule(dspy.Signature):
+    """
+    You are an expert programmer. Your task is to write a single, self-contained Python function based on a provided rule description and example pairs.
+
+    **Function Requirements:**
+    - The function must be named `transform_matrix`.
+    - It must accept one argument: `matrix`, which is a list of lists of integers (representing the input grid).
+    - It must return a list of lists of integers (representing the transformed output grid).
+    - The function should not use any external libraries except for `copy` if needed (e.g., `import copy; new_matrix = copy.deepcopy(matrix)`).
+    - Your output must be ONLY the Python code for the function. Do not include any explanations, comments outside the function, or markdown formatting like ```python.
+
+    **Successful Strategies to Consider:**
+    - **Robust Parsing:** When rules involve sub-regions (e.g., quadrants, objects), write code that can robustly find their boundaries. Don't assume boundaries are perfectly aligned or can be found by checking just the first row/column.
+    - **Iterative Processes:** Some rules are applied repeatedly until the grid no longer changes. Consider using a `while` loop that continues as long as modifications are being made in a pass.
+    - **Consistent Output Shape:** When constructing the output grid row by row (e.g., from sections), ensure each generated row has the same length to avoid creating a staggered/jagged matrix.
+    - **Handling Edge Cases:** Ensure your code handles empty matrices or matrices with unexpected dimensions gracefully.
+
+    **Example of a Correctly Formatted Output:**
+    def transform_matrix(matrix: list[list[int]]) -> list[list[int]]:
+        # Your implementation here
+        # For example, find the most frequent color and fill the grid
+        from collections import Counter
+        import itertools
+        
+        if not matrix or not matrix[0]:
+            return []
+            
+        counts = Counter(itertools.chain.from_iterable(matrix))
+        if counts:
+            # Handle ties by picking the smaller number value
+            most_common_color = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0][0]
+        else:
+            return []
+
+        height = len(matrix)
+        width = len(matrix[0])
+        
+        return [[most_common_color for _ in range(width)] for _ in range(height)]
+    """
+    rule_description: str = dspy.InputField(desc="The English description of the rule to implement.")
+    training_examples: List[TrainingExample] = dspy.InputField(desc="A list of input/output pairs to use as a reference for implementation.")
+    python_function: str = dspy.OutputField(desc="A string containing a single Python function `transform_matrix` that implements the rule.")
+
+class RefineCode(dspy.Signature):
+    """
+    You are a senior programmer debugging a Python function. You will be given a rule description, training examples, the buggy Python code, and feedback on why it failed.
+    Your task is to fix the code so that it correctly implements the rule and passes the training examples.
+    The refined function must adhere to all the original requirements.
+
+    **Function Requirements:**
+    - The function must be named `transform_matrix`.
+    - It must accept one argument: `matrix`, which is a list of lists of integers.
+    - It must return a list of lists of integers.
+    - The function should not use any external libraries except for `copy`.
+    - Your output must be ONLY the Python code for the function. Do not include any explanations or markdown formatting.
+    """
+    rule_description: str = dspy.InputField(desc="The English description of the rule to implement.")
+    training_examples: List[TrainingExample] = dspy.InputField(desc="A list of input/output pairs the function must correctly handle.")
+    buggy_code: str = dspy.InputField(desc="The Python code that failed verification.")
+    feedback: str = dspy.InputField(desc="A description of the error or the discrepancy between the function's output and the expected output for a training example.")
+    refined_python_function: str = dspy.OutputField(desc="A string containing the corrected, single Python function `transform_matrix`.")
+
+# --- Custom Module with Self-Correction ---
+
+class ARCSolver(dspy.Module):
+    """A module that solves ARC tasks by hypothesizing a rule, generating code, and refining it through verification."""
+    def __init__(self, max_retries=2):
+        super().__init__()
+        self.max_retries = max_retries
+        self.rule_hypothesizer = dspy.ChainOfThought(HypothesizeRule)
+        self.code_implementer = dspy.Predict(ImplementRule)
+        self.code_refiner = dspy.Predict(RefineCode)
+
+    def _execute_and_verify(self, python_code: str, examples: List[TrainingExample]) -> Tuple[bool, Optional[str]]:
+        """
+        Executes the generated Python code and verifies its correctness against training examples.
+        Returns a tuple: (is_correct, feedback_message).
+        """
+        local_scope = {}
+        try:
+            exec(python_code, globals(), local_scope)
+            transform_func = local_scope.get('transform_matrix')
+            if not callable(transform_func):
+                return False, "The generated code does not define a callable function named 'transform_matrix'."
+        except Exception as e:
+            return False, f"Code compilation failed with an error: {e}\n{traceback.format_exc()}"
+
+        for i, example_obj in enumerate(examples):
+            # Robustly handle both Pydantic models and dicts, as DSPy can convert them.
+            if isinstance(example_obj, dict):
+                try:
+                    example = TrainingExample(**example_obj)
+                except pydantic.ValidationError as e:
+                    return False, f"Failed to parse training example {i} from dict: {e}"
+            else:
+                example = example_obj
+
+            try:
+                input_copy = copy.deepcopy(example.input)
+                predicted_output = transform_func(input_copy)
+                if predicted_output != example.output:
+                    feedback = (
+                        f"Verification failed on training example {i}.\n"
+                        f"Input:\n{example.input}\n"
+                        f"Expected Output:\n{example.output}\n"
+                        f"Actual Output:\n{predicted_output}"
+                    )
+                    return False, feedback
+            except Exception as e:
+                feedback = (
+                    f"An exception occurred during execution on training example {i}: {e}\n"
+                    f"Input was:\n{example.input}\n"
+                    f"{traceback.format_exc()}"
+                )
+                return False, feedback
+        
+        return True, None
+
+    def forward(self, training_examples: List[TrainingExample], test_inputs: List[MATRIX]):
+        # Step 1: Generate an English description of the transformation rule.
+        hypothesis = self.rule_hypothesizer(training_examples=training_examples)
+        
+        # Step 2: Generate the initial Python code.
+        prediction = self.code_implementer(
+            rule_description=hypothesis.rule_description,
+            training_examples=training_examples
+        )
+        python_code = prediction.python_function
+
+        # Step 3: Verify and refine the code in a loop.
+        for _ in range(self.max_retries):
+            is_correct, feedback = self._execute_and_verify(python_code, training_examples)
+            if is_correct:
+                break
+            
+            refinement = self.code_refiner(
+                rule_description=hypothesis.rule_description,
+                training_examples=training_examples,
+                buggy_code=python_code,
+                feedback=feedback
+            )
+            python_code = refinement.refined_python_function
+        
+        # Step 4: Execute the final code on test inputs with robust fallbacks.
+        fallback_outputs = [copy.deepcopy(matrix) for matrix in test_inputs]
+        local_scope = {}
+        try:
+            exec(python_code, globals(), local_scope)
+            transform_func = local_scope.get('transform_matrix')
+            if not callable(transform_func):
+                return dspy.Prediction(test_outputs=fallback_outputs)
+
+            solved_outputs = []
+            for test_matrix in test_inputs:
+                try:
+                    input_copy = copy.deepcopy(test_matrix)
+                    result = transform_func(input_copy)
+                    solved_outputs.append(result)
+                except Exception:
+                    solved_outputs.append(copy.deepcopy(test_matrix))
+            
+            return dspy.Prediction(test_outputs=solved_outputs)
+
+        except Exception:
+            return dspy.Prediction(test_outputs=fallback_outputs)
+
+# The overall task signature, defining the final inputs and outputs of the program.
+class SolveTaskSignature(dspy.Signature):
+    """
+    Given a set of training examples demonstrating a matrix transformation,
+    apply the same transformation to a new set of test matrices.
+    """
+    training_examples: List[TrainingExample] = dspy.InputField(description="Input and output examples demonstrating the task to be performed.")
+    test_inputs: List[MATRIX] = dspy.InputField(description="Input matrices to be solved following the task described in the training examples.")
+    test_outputs: List[MATRIX] = dspy.OutputField(description="Output matrices corresponding to the test inputs.")
+
+# The final program is an instance of our new, more robust module.
+program = ARCSolver()
+\end{lstlisting}
+\end{instructbox}

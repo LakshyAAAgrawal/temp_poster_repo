@@ -1,9 +1,3 @@
-# User-provided content (not part of the tool)
-overleaf/*
-!overleaf/.gitkeep
-references/*
-!references/.gitkeep
-
 # Generated output
 poster/
 
@@ -22,3 +16,6 @@ poster/
 
 # Old overleaf clone dirs (hash-named folders from Overleaf git)
 66f48147915155a9aac9c3ae/
+
+# Zips
+*.zip

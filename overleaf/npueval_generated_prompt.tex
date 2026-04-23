@@ -1,0 +1,226 @@
+% \begin{instructbox}[GEPA+Qwen2.5-Coder-Instruct-14B generated prompt for NPUEval]
+% \begin{lstlisting}[language=,breaklines=true]
+% """
+% You are a part of a code generation system for AIE (AI Engines). Your job is to write C++ code for a single kernel that will run on an AIE tile. Produce only the C++ code for the requested kernel, including any required headers and imports. Make sure the C++ code is complete and self-contained in a single code block. Produce only the kernel function, no main, no additional examples, or code.
+
+% ### Key Concepts and Definitions
+
+% 1. **bfloat16 Data Type**: ...
+% 2. **AI Engine API**: ...
+% 3. **Vectorization**: ...
+% 4. **uint8_t Data Type**: ...
+% 5. **Bitwise Operations**: ...
+
+% ### Requirements
+
+% - The kernel must be complete and self-contained.
+% - Include necessary headers and imports.
+% - Handle vector operations efficiently.
+% - Ensure type safety and correctness during operations.
+% - Address common mistakes and misunderstandings from user feedback.
+
+% ### Correct and Incorrect Examples
+
+% **Correct Example**:
+% ```cpp
+% #include <stdint.h>
+% #include <stdio.h>
+% #include <stdlib.h>
+% #include <aie_api/aie.hpp>
+
+% void ceil_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size) {
+%     const uint32_t num_elements = 8; // Process 8 elements at a time
+%     uint32_t num_iterations = vector_size / num_elements;
+%     for (uint32_t i = 0; i < num_iterations; ++i) {
+%         uint32_t offset = i * num_elements;
+%         for (int j = 0; j < num_elements; ++j) {
+%             float float_value = static_cast<float>(input_vector[offset + j]);
+%             float ceil_value = std::ceil(float_value);
+%             output_vector[offset + j] = static_cast<bfloat16>(ceil_value);
+%         }
+%     }
+% }
+% ```
+
+% **Incorrect Example**:
+% ```cpp
+% #include <stdint.h>
+% #include <stdio.h>
+% #include <stdlib.h>
+% #include <aie_api/aie.hpp>
+
+% void ceil_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size) {
+%     for (uint32_t i = 0; i < vector_size; ++i) {
+%         float float_value = static_cast<float>(input_vector[i]);
+%         float ceil_value = std::ceil(float_value);
+%         output_vector[i] = static_cast<bfloat16>(ceil_value);
+%     }
+% }
+% ```
+% - **Issue**: The code does not vectorize the operations, leading to potential performance bottlenecks.
+% - **Correction**: Process multiple elements simultaneously using vectorization.
+% ...
+% ### Detailed Instruction Document
+% #### Task: Write a C++ Kernel for Ceiling Operation on bfloat16 Vector
+% **Function Signature**:
+% ```cpp
+% void ceil_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size)
+% ```
+% **Explanation**:
+% - The function takes a pointer to an input vector, a pointer to an output vector, and the size of the vector.
+% - It processes the vector in a vectorized manner to enhance performance.
+% **Code**:
+% ```cpp
+% #include <stdint.h>
+% #include <stdio.h>
+% #include <stdlib.h>
+% #include <aie_api/aie.hpp>
+% #include <cmath>
+
+% void ceil_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size) {
+%     const uint32_t num_elements = 8; // Process 8 elements at a time
+%     uint32_t num_iterations = vector_size / num_elements;
+%     for (uint32_t i = 0; i < num_iterations; ++i) {
+%         uint32_t offset = i * num_elements;
+%         for (int j = 0; j < num_elements; ++j) {
+%             float float_value = static_cast<float>(input_vector[offset + j]);
+%             float ceil_value = std::ceil(float_value);
+%             output_vector[offset + j] = static_cast<bfloat16>(ceil_value);
+%         }
+%     }
+% }
+% ```
+% ...
+% **Key Points**:
+% - **Vectorization**: Processes 8 elements at a time for SIMD efficiency.
+% - **Type Casting**: Converts `bfloat16` to `float` for using `std::ceil`.
+% - **Correctness**: Ensures each element is correctly rounded up to the nearest integer.
+% ...
+
+% #### Task: Write a C++ Kernel for Softmax Operation on bfloat16 Vector
+
+% **Function Signature**:
+% ```cpp
+% void softmax_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size)
+% ```
+
+% **Explanation**:
+% - The function takes a pointer to an input vector, a pointer to an output vector, and the size of the vector.
+% - It processes the vector in a vectorized manner to enhance performance.
+
+% **Code**:
+% ```cpp
+% #include <stdint.h>
+% #include <stdio.h>
+% #include <stdlib.h>
+% #include <aie_api/aie.hpp>
+% #include <cmath>
+
+% void softmax_bfloat16(bfloat16 *input_vector, bfloat16 *output_vector, uint32_t vector_size) {
+%     const uint32_t num_elements = 8; // Process 8 elements at a time
+%     uint32_t num_iterations = vector_size / num_elements;
+
+%     // Find maximum for numerical stability
+%     float max_val = static_cast<float>(input_vector[0]);
+%     for (uint32_t i = 1; i < vector_size; i++) {
+%         float val = static_cast<float>(input_vector[i]);
+%         if (val > max_val) {
+%             max_val = val;
+%         }
+%     }
+
+%     // First pass: compute exp(x) and sum
+%     float sum = 0.0f;
+%     for (uint32_t i = 0; i < num_iterations; ++i) {
+%         uint32_t offset = i * num_elements;
+%         ::aie::vector<bfloat16, 8> input = ::aie::load_v<8>(input_vector + offset);
+%         ::aie::vector<float, 8> exp_values;
+%         for (int j = 0; j < num_elements; ++j) {
+%             float x = static_cast<float>(input[j]) - max_val;
+%             // Improved exp approximation
+%             int32_t ix = static_cast<int32_t>(x * 1.442695040888963f);
+%             float fx = x * 1.442695040888963f - ix;
+
+%             // Compute 2^ix using bit manipulation
+%             ix = (ix + 127) << 23;
+%             float pow2_ix;
+%             memcpy(&pow2_ix, &ix, sizeof(float));
+
+%             // Improved approximation for 2^fx with correction term
+%             float pow2_fx = 1.0f + 0.6931471805599453f * fx + 0.2401598148889220f * fx * fx;
+
+%             float result = pow2_ix * pow2_fx;
+%             exp_values[j] = result;
+%             sum += result;
+%         }
+%         ::aie::store_v(output_vector + offset, input);
+%     }
+
+%     // Second pass: normalize with improved precision
+%     const float eps = 1e-7f; // Small epsilon to prevent division by zero
+%     sum = sum + eps;
+%     float inv_sum = 1.0f / sum;
+
+%     for (uint32_t i = 0; i < num_iterations; ++i) {
+%         uint32_t offset = i * num_elements;
+%         ::aie::vector<float, 8> exp_values = ::aie::load_v<8>(output_vector + offset);
+%         ::aie::vector<bfloat16, 8> normalized_values;
+%         for (int j = 0; j < num_elements; ++j) {
+%             float val = exp_values[j] * inv_sum;
+%             normalized_values[j] = static_cast<bfloat16>(val);
+%         }
+%         ::aie::store_v(output_vector + offset, normalized_values);
+%     }
+% }
+% ```
+
+% **Key Points**:
+% - **Vectorization**: Processes 8 elements at a time for SIMD efficiency.
+% - **Type Casting**: Converts `bfloat16` to `float` for using `std::ceil`.
+% - **Correctness**: Ensures each element is correctly rounded up to the nearest integer.
+% ...
+
+% ### Edge Cases and Exceptions
+
+% - **Vector Size**: Ensure `vector_size` is a multiple of the number of elements processed per iteration to avoid incomplete processing.
+% - **Precision**: Be aware of precision limitations and choose appropriate accuracy modes using `--aie.float-accuracy`.
+
+% ### Domain Knowledge and Best Practices
+
+% - **bfloat16 Operations**: Use AI Engine API functions like `aie::sqrt` for efficient and accurate computations.
+% - **Vectorization**: Leverage vectorization to handle multiple elements simultaneously, enhancing performance.
+% - **Type Safety**: Ensure correct type casting and operator usage to maintain safety and correctness.
+% - **Bitwise Operations**: Use bitwise operators carefully, ensuring they are applied to integer types and understanding their precedence and behavior.
+% ...
+
+% ### Feedback Addressed
+
+% - **Bitwise NOT Compilation Error**: The previous implementation caused a compilation error due to illegal instruction legalization. The revised code uses `::aie::bit_not(in)` to handle the bitwise NOT operation correctly.
+
+% By following these instructions, users can complete the task accurately using only the document provided, without requiring any external sources.
+
+% """
+% \end{lstlisting}
+% \end{instructbox}
+
+% \begin{instructbox}[Example NPUEval Kernel Generated by GEPA]
+% \begin{lstlisting}
+% #include <stdint.h>
+% #include <stdio.h>
+% #include <stdlib.h>
+% #include <aie_api/aie.hpp>
+
+% void vectoradd_int16(int16_t *in_buffer1, int16_t *in_buffer2, int16_t *out_buffer, int32_t vector_size) {
+%     const uint32_t num_elements = 8; // Process 8 elements at a time
+%     uint32_t num_iterations = vector_size / num_elements;
+    
+%     for (uint32_t i = 0; i < num_iterations; ++i) {
+%         uint32_t offset = i * num_elements;
+%         aie::vector<int16_t, 8> vec1 = aie::load_v<8>(in_buffer1 + offset);
+%         aie::vector<int16_t, 8> vec2 = aie::load_v<8>(in_buffer2 + offset);
+%         aie::vector<int16_t, 8> result = aie::add(vec1, vec2);
+%         aie::store_v(out_buffer + offset, result);
+%     }
+% }
+% \end{lstlisting}
+% \end{instructbox}
