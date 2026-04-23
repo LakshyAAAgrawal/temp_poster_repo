@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEPA: Reflective Prompt Evolution — ICLR 2026 Poster</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  :root {
+    --blue:#1f5aa6; --blue-light:#e3eefa; --blue-dark:#123a6f;
+    --orange:#e87927; --orange-light:#fdecd7;
+    --teal:#22a08a; --teal-light:#dcf5ef;
+    --purple:#6e4bbd; --purple-light:#eae3f7;
+    --red:#d04040; --red-light:#fbe2e2;
+    --text:#1a1a1a; --text-light:#5a5a5a;
+    --bg:#f2efe7; --card-bg:#ffffff;
+    --gap:6mm; --pad:14mm;
+    --font-scale:3.0;
+  }
+
+  /* 76.4in x 37.4in landscape */
+  @page { size: 1940.56mm 949.96mm; margin:0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-family:'Nunito', sans-serif; color:var(--text); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body { width:1940.56mm; height:949.96mm; background:var(--bg); overflow:hidden; transform-origin:top left; }
+  #root { width:100%; height:100%; display:grid; grid-template-rows:auto 1fr; }
+  @media screen { html { background:#bbb; overflow:hidden; width:100vw; height:100vh; } body { position:absolute; box-shadow:0 4px 30px rgba(0,0,0,.3); border-radius:4px; } }
+  @media print { html { background:none; } body { position:static; transform:none !important; box-shadow:none; border-radius:0; } .toolbar,.divider,.swap-handle,.drop-zone{display:none !important;} }
+  body.preview .divider,body.preview .swap-handle,body.preview .drop-zone { display:none !important; }
+
+  /* === HEADER === */
+  .header {
+    background: linear-gradient(135deg, #0f3561 0%, #1f5aa6 45%, #2a77c4 100%);
+    padding: 6mm var(--pad) 7mm; display:flex; align-items:center; gap:14mm;
+  }
+  .header-left { flex:1; min-width:0; }
+  .header h1 { font-size:96pt; font-weight:900; line-height:1.0; color:#fff; margin-bottom:5mm; letter-spacing:-0.5pt; }
+  .header h1 .m { color:#ffc248; }
+  .header .authors { font-size:30pt; color:rgba(255,255,255,.95); font-weight:700; line-height:1.22; }
+  .header .authors .lead { font-weight:900; border-bottom: 2px solid #ffc248; padding-bottom:1mm; }
+  .header .authors sup { font-size:20pt; color:#ffc248; font-weight:700; }
+  .header .aff { font-size:22pt; color:rgba(255,255,255,.82); margin-top:2.5mm; font-weight:600; }
+  .header .aff sup { color:#ffc248; font-size:16pt; font-weight:800; }
+  .header-logos { display:flex; align-items:center; justify-content:center; gap:7mm; flex-shrink:0; }
+  .header-logos img { height:40mm; object-fit:contain; background:rgba(255,255,255,.92); padding:2mm 3mm; border-radius:2mm; }
+  .header-logos img.wordmark { background:transparent; padding:0; filter:brightness(0) invert(1); }
+  .header-right { display:flex; flex-direction:row; align-items:center; gap:6mm; flex-shrink:0; }
+  .badge {
+    font-size:22pt; font-weight:900; color:#fff; background:rgba(255,255,255,.22);
+    border:2.5px solid rgba(255,192,72,.85); padding:2.5mm 6mm; border-radius:3mm; line-height:1.08;
+    text-align:center;
+  }
+  .badge .b2 { display:block; font-size:16pt; color:#ffc248; font-weight:800; margin-top:1mm; }
+  .header-right .qr img { width:44mm; height:44mm; border-radius:2mm; background:#fff; padding:1.2mm; }
+  .header-right .qr { text-align:center; }
+  .header-right .ql { font-size:11pt; color:#ffc248; font-weight:800; text-align:center; margin-top:1mm; max-width:44mm; line-height:1.12; }
+
+  /* === POSTER COLUMNS === */
+  .poster { display:flex; gap:var(--gap); padding:var(--gap) var(--pad) var(--gap); min-height:0; flex:1; overflow:hidden; }
+  .col { display:flex; flex-direction:column; gap:var(--gap); min-height:0; overflow:hidden; }
+
+  /* === CARD === */
+  .card {
+    background:var(--card-bg); border-radius:4mm; padding:6mm 8mm;
+    box-shadow:0 2px 6px rgba(0,0,0,.08); border-top:4.5px solid var(--blue);
+    display:flex; flex-direction:column; overflow:hidden; min-height:0; flex:0 0 auto; position:relative; transition:outline .15s;
+  }
+  .card.grow { flex:1 1 0; }
+  .card.orange { border-top-color:var(--orange); }
+  .card.teal   { border-top-color:var(--teal); }
+  .card.purple { border-top-color:var(--purple); }
+  .card.red    { border-top-color:var(--red); }
+
+  .card h2 { font-size:calc(12.5pt * var(--font-scale)); font-weight:900; margin-bottom:4mm; flex-shrink:0; color:var(--blue); line-height:1.08; }
+  .card.orange h2{color:var(--orange);} .card.teal h2{color:var(--teal);} .card.purple h2{color:var(--purple);} .card.red h2{color:var(--red);}
+  .card p,.card li { font-size:calc(9pt * var(--font-scale)); line-height:1.3; }
+  .card ul,.card ol { padding-left:12mm; flex-shrink:0; }
+  .card li { margin-bottom:2.2mm; }
+  .card li::marker { font-weight:800; color:var(--blue); }
+  .card.orange li::marker{color:var(--orange);} .card.teal li::marker{color:var(--teal);} .card.purple li::marker{color:var(--purple);} .card.red li::marker{color:var(--red);}
+
+  b, strong { font-weight:800; }
+  em { font-style:italic; }
+
+  /* Highlight box */
+  .hl {
+    background:var(--orange-light); border-left:5px solid var(--orange);
+    padding:4mm 6mm; border-radius:0 3mm 3mm 0; margin-bottom:3mm; flex-shrink:0;
+  }
+  .hl p { font-size:calc(10pt * var(--font-scale)); line-height:1.28; font-weight:700; color:var(--text); }
+  .card.teal  .hl { background:var(--teal-light); border-left-color:var(--teal); }
+  .card.purple .hl { background:var(--purple-light); border-left-color:var(--purple); }
+  .card.red   .hl { background:var(--red-light); border-left-color:var(--red); }
+  .card.orange .hl { background:var(--orange-light); border-left-color:var(--orange); }
+
+  /* Figure */
+  .fig { flex:1; display:flex; flex-direction:column; min-height:0; margin:2mm 0; }
+  .fig-wrap { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; overflow:hidden; }
+  .fig-wrap img { width:100%; height:100%; object-fit:contain; border-radius:2mm; display:block; }
+  .fig .cap { font-size:calc(7pt * var(--font-scale)); color:var(--text-light); margin-top:2mm; line-height:1.22; flex-shrink:0; }
+  .fig .cap b { color:var(--text); }
+
+  .fig-row { flex:1; display:flex; gap:4mm; min-height:0; }
+  .fig-row .fig { flex:1; margin:0; }
+
+  /* Tables */
+  table {
+    width:100%; border-collapse:collapse; font-size:calc(8.5pt * var(--font-scale)); margin:2mm 0;
+    font-variant-numeric: tabular-nums;
+  }
+  thead th {
+    background:var(--blue); color:#fff; padding:3mm 3mm; text-align:center;
+    font-weight:800; font-size:calc(8pt * var(--font-scale));
+  }
+  thead th:first-child { text-align:left; }
+  tbody td { padding:2.5mm 3mm; border-bottom:1px solid #eee; text-align:center; }
+  tbody td:first-child { text-align:left; font-weight:700; }
+  tbody tr:nth-child(even) { background:#f7f9fc; }
+  tbody tr.ours { background:#fff4e6; font-weight:800; }
+  tbody tr.ours td { border-top:1px solid #e8943a; border-bottom:1px solid #e8943a; }
+  .best { font-weight:900; color:var(--orange); }
+  .tblsub { background:#dde6f3 !important; }
+  .tblsub td { font-weight:800; font-size:calc(7.2pt * var(--font-scale)); color:var(--blue-dark); padding:1.8mm 3mm; text-align:left !important; }
+
+  /* Code / prompt blocks */
+  .prompt {
+    background:#f4f8fd; border:2px solid #c9d9ef; border-radius:3mm;
+    padding:4mm 5mm; margin:2mm 0; flex-shrink:0;
+    font-family:'Nunito', sans-serif;
+  }
+  .prompt .hdr {
+    font-size:calc(8.5pt * var(--font-scale)); font-weight:800; color:var(--blue-dark);
+    margin-bottom:2mm; border-bottom:1.5px solid #c9d9ef; padding-bottom:1.5mm;
+  }
+  .prompt .body { font-size:calc(7.5pt * var(--font-scale)); line-height:1.28; color:#222; }
+  .prompt code, .prompt .mono {
+    font-family:'JetBrains Mono', monospace;
+    background:#e8eef7; padding:.3mm 1.2mm; border-radius:.8mm; font-size:.9em;
+  }
+  .prompt ul { padding-left:7mm; margin:1.5mm 0; }
+  .prompt li { font-size:calc(7.5pt * var(--font-scale)); line-height:1.3; margin-bottom:1mm; }
+  .prompt.seed { background:#fef7ea; border-color:#f3d79a; }
+  .prompt.seed .hdr { color:#7a5a12; border-bottom-color:#f3d79a; }
+  .prompt.gepa { background:#f4f8fd; border-color:#c9d9ef; }
+  .prompt.gepa .hdr { color:var(--blue-dark); }
+  .kw { background:#fff3c0; padding:.1em .3em; border-radius:.8mm; font-weight:700; }
+
+  /* Algorithm sketch */
+  .algo {
+    background:#f8f5ec; border:2px solid #d9cfa8; border-radius:3mm;
+    padding:4mm 6mm; font-family:'JetBrains Mono', monospace; margin:2mm 0; flex-shrink:0;
+  }
+  .algo .step { font-size:calc(8pt * var(--font-scale)); line-height:1.45; margin-bottom:1mm; }
+  .algo .step .tag { color:var(--orange); font-weight:800; }
+  .algo .step.indent { padding-left:8mm; }
+  .algo .step.indent2 { padding-left:16mm; }
+  .algo .hdr { font-size:calc(8.5pt * var(--font-scale)); font-weight:800; color:var(--blue-dark); margin-bottom:2mm; font-family:'Nunito', sans-serif; }
+
+  /* Math */
+  .katex { font-size:calc(10pt * var(--font-scale)) !important; }
+
+  /* Links */
+  .links {
+    display:flex; align-items:center; gap:5mm; background:var(--blue-light);
+    padding:4mm 5mm; border-radius:2mm; margin-top:3mm; flex-shrink:0;
+  }
+  .links .ll { font-size:calc(8pt * var(--font-scale)); line-height:1.3; }
+  .links .ll b { color:var(--blue); }
+
+  /* Key stat highlight */
+  .stat {
+    display:inline-block; padding:1.5mm 4mm; background:var(--orange); color:#fff;
+    border-radius:2mm; font-weight:900; font-size:calc(10pt * var(--font-scale));
+  }
+
+  /* Two-column row */
+  .row { display:flex; gap:4mm; flex-shrink:0; }
+  .row > * { flex:1; }
+
+  /* === TOOLBAR === */
+  .toolbar { position:fixed; top:8px; right:8px; z-index:1000; display:flex; gap:6px; align-items:center; }
+  .toolbar button { font-family:'Nunito'; font-size:11px; font-weight:700; padding:5px 12px; border-radius:6px; border:none; cursor:pointer; background:#eee; color:#555; }
+  .toolbar button:hover { background:#ddd; }
+
+  /* Swap handles */
+  .card .swap-handle { position:absolute; top:2mm; right:2mm; width:12mm; height:12mm; background:var(--blue); color:#fff; border-radius:2mm; font-size:20pt; text-align:center; line-height:12mm; cursor:pointer; z-index:10; user-select:none; opacity:.3; transition:opacity .15s,background .15s,transform .15s; }
+  .card .swap-handle:hover { opacity:.85; transform:scale(1.15); }
+  .card.swap-selected { outline:4px solid var(--orange); outline-offset:-2px; }
+  .card.swap-selected .swap-handle { background:var(--orange); opacity:1; transform:scale(1.2); }
+
+  .divider { position:relative; z-index:50; flex-shrink:0; }
+  .divider::after { content:''; position:absolute; background:rgba(45,127,193,.12); border-radius:1.5mm; transition:background .15s; }
+  .divider:hover::after,.divider.active::after { background:rgba(45,127,193,.5); }
+  .col-resize { width:10mm; cursor:col-resize; margin:0 -5mm; }
+  .col-resize::after { top:0; bottom:0; left:3mm; width:4mm; }
+  .row-resize { height:10mm; cursor:row-resize; margin:-5mm 0; }
+  .row-resize::after { left:0; right:0; top:3mm; height:4mm; }
+
+  .drop-zone { height:0; position:relative; z-index:60; transition:height .15s; }
+  .drop-zone.visible { height:8mm; }
+  .drop-zone-inner { position:absolute; left:2mm; right:2mm; top:0; bottom:0; border-radius:2mm; background:rgba(232,148,58,.18); border:3px dashed var(--orange); transition:background .15s; cursor:pointer; }
+  .drop-zone-inner:hover { background:rgba(232,148,58,.4); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect, useCallback } = React;
+const MM = 3.7795275591;
+/* 76.4 in x 37.4 in landscape */
+const POSTER_W_MM = 1940.56;
+const POSTER_H_MM = 949.96;
+
+/* ================================================================
+   Card content
+   ================================================================ */
+const CARD_REGISTRY = {
+
+  /* ---------- COL 1: MOTIVATION → MAIN IDEA → SAMPLE EFFICIENCY ---------- */
+
+  motivation: {
+    title: 'Motivation: Sample-Efficient Learning Matters',
+    color: null,
+    grow: false,
+    body: (
+      <>
+        <div className="hl"><p>LLM systems increasingly rely on expensive rollouts (tools, retrieval, code execution). Weight-space RL (GRPO) typically needs <b>tens of thousands of rollouts</b> per task — impractical when every rollout costs compute, API calls, or tool budget.</p></div>
+        <ul>
+          <li>RL collapses a rollout into a <b>single scalar reward</b>, discarding the language trace that produced it.</li>
+          <li>Modern LLMs already read those traces — compiler errors, failed rubrics, reasoning chains — as <b>rich, diagnostic feedback</b>.</li>
+          <li>So: <b>can we learn by reflecting on text</b>, not by propagating policy gradients?</li>
+        </ul>
+      </>
+    ),
+  },
+
+  main_idea: {
+    title: 'Main Idea: Reflective Prompt Evolution in Text Space',
+    color: 'orange',
+    grow: false,
+    body: (
+      <>
+        <div className="hl"><p>GEPA (<b>Ge</b>netic-<b>Pa</b>reto) learns by reading, reflecting on, and rewriting prompts — <em>entirely in natural language</em>. No weight updates, no policy gradients.</p></div>
+        <ul>
+          <li><b>Reflect:</b> LLM reads execution + evaluation traces to diagnose why a rollout failed or succeeded.</li>
+          <li><b>Mutate:</b> propose a new prompt incorporating the lesson as <em>declarative instructions</em>.</li>
+          <li><b>Evolve:</b> build an ancestry tree; descendants inherit lessons and survive only if they score better.</li>
+          <li><b>Illuminate:</b> sample from the <b>Pareto frontier</b> across training instances to avoid local optima.</li>
+        </ul>
+        <div className="fig">
+          <div className="fig-wrap"><img src="reflection_diagram.png" alt="Reflective mutation: trace → feedback → proposed prompt" /></div>
+          <div className="cap"><b>Reflective mutation.</b> Run system on a dev minibatch → collect trace &amp; feedback → call an LM to rewrite the selected module's prompt.</div>
+        </div>
+      </>
+    ),
+  },
+
+  sample_efficiency: {
+    title: 'GEPA is Highly Sample-Efficient',
+    color: 'teal',
+    grow: true,
+    body: (
+      <>
+        <div className="hl"><p>On Qwen3 8B, GEPA <b>surpasses GRPO (24k rollouts)</b> with up to <b>35× fewer rollouts</b> — and matches its peak using just <b>~2% of GRPO's budget</b>.</p></div>
+        <div className="fig-row">
+          <div className="fig">
+            <div className="fig-wrap"><img src="curve_hotpotqa.png" alt="HotpotQA: GEPA vs MIPROv2 vs GRPO" /></div>
+            <div className="cap"><b>(a) HotpotQA, Qwen3 8B.</b> GEPA climbs past GRPO's 24k-rollout ceiling before MIPROv2 even warms up.</div>
+          </div>
+          <div className="fig">
+            <div className="fig-wrap"><img src="curve_ifbench.png" alt="IFBench: GEPA vs MIPROv2 vs GRPO" /></div>
+            <div className="cap"><b>(b) IFBench, Qwen3 8B.</b> GEPA generalizes to held-out OOD instruction-following constraints (★ = test-set score).</div>
+          </div>
+        </div>
+      </>
+    ),
+  },
+
+  /* ---------- COL 2: PROMPT → ALGORITHM → PARETO ---------- */
+
+  gepa_prompt: {
+    title: 'GEPA-Generated Prompts are Incredibly Detailed',
+    color: 'purple',
+    grow: false,
+    body: (
+      <>
+        <div className="prompt seed">
+          <div className="hdr">Seed prompt — second-hop query module of a multi-hop QA system</div>
+          <div className="body">
+            Given the fields <span className="mono">question</span>, <span className="mono">summary_1</span>, produce the field <span className="mono">query</span>.
+          </div>
+        </div>
+        <div className="prompt gepa">
+          <div className="hdr">GEPA-optimized prompt (GPT-4.1 Mini, HotpotQA, excerpted)</div>
+          <div className="body">
+            <b>You will be given two input fields:</b> <span className="mono">question</span> and <span className="mono">summary_1</span>. <b>Your task:</b> generate a new search query <span className="mono">query</span> <em>optimized for the second hop</em> of a multi-hop retrieval system.
+            <ul>
+              <li>The original user question is typically complex and requires information from multiple documents to answer.</li>
+              <li>The first-hop query is the original question (used to retrieve initial documents).</li>
+              <li>Your goal: retrieve documents <em>not</em> found in the first hop but necessary to fully answer the question.</li>
+            </ul>
+            <b>Key observations &amp; lessons:</b>
+            <ul>
+              <li>First-hop documents often cover <span className="kw">one entity or aspect</span>; remaining relevant docs involve connected or higher-level concepts mentioned in <span className="mono">summary_1</span> but not explicitly asked.</li>
+              <li>Avoid merely paraphrasing the question or restating known facts from <span className="mono">summary_1</span>.</li>
+              <li>Infer <span className="kw">what broader or related entities</span> might provide the crucial missing information.</li>
+              <li>Example: if <span className="mono">summary_1</span> describes the population of a small civil parish but the question asks for the total population of the wider region, target the wider region (e.g., "Madeira archipelago population in 2011").</li>
+            </ul>
+            <b>How to build the query:</b> identify entities / topics in <span className="mono">summary_1</span> that differ from first-hop docs; reframe the query to mention <span className="kw">broader or complementary entities</span> connected to the original question; keep key context from the question but shift focus to the missing piece.
+            <br /><br />
+            <b>Output:</b> a concise factual query that targets the missing entity/concept; <em>do not</em> include the original question or simply rephrase it; <em>do not</em> duplicate information well-covered by the first hop…
+          </div>
+        </div>
+      </>
+    ),
+  },
+
+  how_it_works: {
+    title: 'How It Works: the GEPA Algorithm',
+    color: 'teal',
+    grow: true,
+    body: (
+      <>
+        <div className="algo">
+          <div className="hdr">Algorithm sketch (from the talk)</div>
+          <div className="step"><span className="tag">Input:</span> train set, AI system (parametrized by ≥1 prompts), and metric.</div>
+          <div className="step"><span className="tag">1.</span> Split train set into <b>dev</b> &amp; <b>val</b> sets.</div>
+          <div className="step"><span className="tag">2.</span> Track a <b>pool of candidates</b>, including the best on each val item (the <b>Pareto front</b>).</div>
+          <div className="step"><span className="tag">3. Repeatedly:</span></div>
+          <div className="step indent">a. Select a prompt (from the Pareto frontier) to try to improve.</div>
+          <div className="step indent">b. Run the system on a minibatch of dev examples, noting intermediate feedback.</div>
+          <div className="step indent">c. Call an LM to propose alternatives — "mutating" one current prompt, or "crossing over" two.</div>
+          <div className="step indent">d. Update the pool based on how candidates score on val (updating the Pareto front).</div>
+        </div>
+        <div className="fig">
+          <div className="fig-wrap"><img src="gepa_algorithm.png" alt="GEPA full algorithm diagram" /></div>
+          <div className="cap"><b>Reflective mutation &amp; system-aware merge</b> propose new candidates; accepted ones join the pool and update the Pareto front.</div>
+        </div>
+      </>
+    ),
+  },
+
+  pareto: {
+    title: 'Pareto-based Candidate Selection Matters',
+    color: 'red',
+    grow: false,
+    body: (
+      <>
+        <div className="hl"><p>Always picking the current best traps GEPA in a local optimum. Sampling from the <b>Pareto frontier</b> of "best-per-task" candidates preserves complementary strategies — and gives up to <b>+8.2% aggregate</b> over SelectBest and <b>+7.3%</b> over Beam Search.</p></div>
+        <div className="fig">
+          <div className="fig-wrap"><img src="pareto_sampling.png" alt="Pareto-based candidate selection" /></div>
+          <div className="cap"><b>Pareto illumination.</b> For each training item, track the top-scoring candidate; sample stochastically weighted by how many items a candidate leads.</div>
+        </div>
+      </>
+    ),
+  },
+
+  /* ---------- COL 3: RESULTS → BEYOND PROMPTS (optimize_anything) ---------- */
+
+  main_results: {
+    title: 'Main Results: Consistent Gains Across Models &amp; Tasks',
+    color: 'orange',
+    grow: false,
+    body: (
+      <>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th><th>HotpotQA</th><th>IFBench</th><th>HoVer</th><th>PUPA</th><th>AIME</th><th>LBench</th><th>Aggr.</th><th>Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="tblsub"><td colSpan="9">Qwen3 8B &nbsp; — &nbsp; GEPA uses ~3.9k rollouts avg. &nbsp; GRPO uses 24k</td></tr>
+            <tr><td>Baseline</td><td>42.33</td><td>36.90</td><td>35.33</td><td>80.82</td><td>27.33</td><td>48.70</td><td>45.23</td><td>—</td></tr>
+            <tr><td>GRPO (24k)</td><td>43.33</td><td>35.88</td><td>38.67</td><td>86.66</td><td className="best">38.00</td><td>51.26</td><td>48.91</td><td>+3.68</td></tr>
+            <tr><td>MIPROv2</td><td>55.33</td><td>36.22</td><td>47.33</td><td>81.55</td><td>20.00</td><td>46.60</td><td>47.84</td><td>+2.61</td></tr>
+            <tr className="ours"><td>GEPA</td><td>62.33</td><td className="best">38.61</td><td className="best">52.33</td><td className="best">91.85</td><td>32.00</td><td className="best">51.95</td><td className="best">54.85</td><td className="best">+9.62</td></tr>
+            <tr className="ours"><td>GEPA+Merge</td><td className="best">64.33</td><td>28.23</td><td>51.67</td><td>86.26</td><td>32.00</td><td className="best">51.95</td><td>52.40</td><td>+7.17</td></tr>
+            <tr className="tblsub"><td colSpan="9">GPT-4.1 Mini &nbsp; — &nbsp; GEPA trained on the same tasks; also transfers across models</td></tr>
+            <tr><td>Baseline</td><td>38.00</td><td>47.79</td><td>46.33</td><td>78.57</td><td>49.33</td><td>58.20</td><td>53.03</td><td>—</td></tr>
+            <tr><td>Trace (OptoPrime)</td><td>60.33</td><td>51.19</td><td>46.00</td><td>74.18</td><td>45.33</td><td>60.74</td><td>56.30</td><td>+3.27</td></tr>
+            <tr><td>MIPROv2</td><td>58.00</td><td>49.15</td><td>48.33</td><td>83.37</td><td>51.33</td><td>61.84</td><td>58.67</td><td>+5.64</td></tr>
+            <tr><td>TextGrad</td><td>62.33</td><td>48.64</td><td>47.67</td><td>85.68</td><td>46.67</td><td>63.84</td><td>59.14</td><td>+6.11</td></tr>
+            <tr className="ours"><td>GEPA</td><td className="best">69.00</td><td>52.72</td><td>51.67</td><td>94.47</td><td className="best">59.33</td><td>64.13</td><td>65.22</td><td>+12.19</td></tr>
+            <tr className="ours"><td>GEPA+Merge</td><td>65.67</td><td className="best">55.95</td><td className="best">56.67</td><td className="best">96.46</td><td className="best">59.33</td><td className="best">64.13</td><td className="best">66.36</td><td className="best">+13.33</td></tr>
+            <tr><td><em>GEPA-Qwen→GPT</em></td><td>65.67</td><td>49.83</td><td>54.67</td><td>90.05</td><td>52.67</td><td>59.31</td><td>62.03</td><td>+9.00</td></tr>
+          </tbody>
+        </table>
+        <div className="hl" style={{marginTop:'3mm'}}><p>GEPA beats every prompt-optimizer baseline on every benchmark &amp; model. Prompts optimized for <b>Qwen3 8B transfer to GPT-4.1 Mini</b> (+9.00%) — <em>without</em> re-optimization.</p></div>
+      </>
+    ),
+  },
+
+  scale_modality_domain: {
+    title: 'Across Scales, Modalities &amp; Domains',
+    color: 'teal',
+    grow: true,
+    body: (
+      <>
+        <ul>
+          <li><b>Model scales:</b> 8B open (Qwen3) and frontier closed (GPT-4.1 Mini) — both gain double-digit aggregate %.</li>
+          <li><b>Domains:</b> multi-hop QA, instruction following, retrieval-augmented verification, privacy-aware delegation, math (AIME / LiveBench).</li>
+          <li><b>Modalities &amp; code:</b> as inference-time search, GEPA writes <b>AMD NPU kernels</b> reaching 70% vector utilization (30.5% mean vs 4.25% for GPT-4o alone) and <b>CUDA kernels</b> that beat PyTorch on 20%+ of KernelBench tasks.</li>
+          <li><b>Adversarial prompts:</b> inverting the reward, GEPA drops GPT-5-Mini's AIME pass@1 from 76% to 10% with a single universal distractor.</li>
+        </ul>
+        <div className="fig-row">
+          <div className="fig">
+            <div className="fig-wrap"><img src="npueval_vec_util.png" alt="NPU kernel vector utilization" /></div>
+            <div className="cap"><b>AMD NPU kernels.</b> GEPA + GPT-4o: 30.5% mean (vs 4.25% base).</div>
+          </div>
+          <div className="fig">
+            <div className="fig-wrap"><img src="kernelbench_fastp.png" alt="KernelBench fast_p vs budget" /></div>
+            <div className="cap"><b>CUDA KernelBench.</b> <code>fast_p</code> climbs from ~0% → 20%+ as GEPA's search budget grows.</div>
+          </div>
+          <div className="fig">
+            <div className="fig-wrap"><img src="prompt_size_qwen.png" alt="Performance vs prompt size" /></div>
+            <div className="cap"><b>Shorter, better prompts.</b> Up to <b>9.2× shorter</b> than MIPROv2 at higher scores.</div>
+          </div>
+        </div>
+      </>
+    ),
+  },
+
+  optimize_anything: {
+    title: 'Beyond Prompts: GEPA as <code>optimize_anything</code>',
+    color: 'purple',
+    grow: false,
+    body: (
+      <>
+        <div className="hl"><p>Swap the text artifact: if you can <em>serialize it</em> and <em>score it</em>, GEPA can evolve it. Our follow-up <b><code>optimize_anything</code></b> (Sky Lab) unifies prompts, agent architectures, kernels, schedulers, configs, &amp; SVGs under one API — with a single LLM-based search backend.</p></div>
+        <ul>
+          <li><b>Agent architecture discovery</b> (ARC-AGI, Gemini Flash): GEPA evolves a one-step CoT into a 6-step self-refinement agent — <b>32.5% → 89.5%</b> test accuracy.</li>
+          <li><b>Cloud cost optimization</b> (CloudCast routing): <b>-40%</b> cost vs a Dijkstra baseline.</li>
+          <li><b>Scientific discovery</b>: outperforms AlphaEvolve's published solution on circle-packing (n=26).</li>
+          <li><b>Coding-agent skills</b> (Bleve): Claude Sonnet 4.5 resolve rate 94.8% → 100%, -116 s / task.</li>
+        </ul>
+        <div className="fig">
+          <div className="fig-wrap"><img src="optany_arc_arch.png" alt="Discovered ARC-AGI agent architecture" /></div>
+          <div className="cap"><b>Discovered ARC-AGI agent (Gemini Flash).</b> GEPA evolves 1-step CoT → 6-step: induce rule → program → test → debug → refine. <b>32.5% → 89.5%</b> on the held-out public eval.</div>
+        </div>
+      </>
+    ),
+  },
+
+};
+
+/* ================================================================
+   Default layout — 3 columns, landscape 1940.56 x 949.96 mm
+   ================================================================ */
+const DEFAULT_LAYOUT = {
+  columns: [
+    { id: 'col1', widthMm: 600, cards: ['motivation', 'main_idea', 'sample_efficiency'] },
+    { id: 'col2', widthMm: null, cards: ['gepa_prompt', 'how_it_works', 'pareto'] },
+    { id: 'col3', widthMm: 600, cards: ['main_results', 'scale_modality_domain', 'optimize_anything'] },
+  ],
+};
+const DEFAULT_CARD_HEIGHTS = {
+  motivation: 185,
+  main_idea: 320,
+  gepa_prompt: 300,
+  pareto: 200,
+  main_results: 310,
+  optimize_anything: 310,
+};
+const DEFAULT_FONT_SCALE = 3.0;
+
+const DEFAULT_LOGOS = [
+  { src: 'logos/berkeley.svg', alt: 'UC Berkeley', heightMm: 40 },
+  { src: 'logos/stanford.png',  alt: 'Stanford',   heightMm: 40 },
+  { src: 'logos/mit.png',       alt: 'MIT',        heightMm: 40 },
+  { src: 'logos/notre_dame.png',alt: 'Notre Dame', heightMm: 40 },
+  { src: 'logos/databricks.png',alt: 'Databricks', heightMm: 20, wordmark: true },
+];
+
+/* ================================================================
+   Framework code
+   ================================================================ */
+
+function cloneLayout(l) { return { columns: l.columns.map(c => ({ id:c.id, widthMm:c.widthMm, cards:[...c.cards] })) }; }
+
+const LS_KEY = 'posterConfigGEPA';
+function getFullConfig(layout, cardHeights, fontScale, logos) { return { columns:layout.columns, cardHeights, fontScale, logos }; }
+function loadInitialConfig() { try { const s = localStorage.getItem(LS_KEY); if (s) return JSON.parse(s); } catch(e) {} return null; }
+const INIT_CONFIG = loadInitialConfig();
+
+function PosterApp() {
+  const [layout, setLayout] = useState(INIT_CONFIG ? cloneLayout({columns:INIT_CONFIG.columns}) : cloneLayout(DEFAULT_LAYOUT));
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [cardHeights, setCardHeights] = useState(INIT_CONFIG?.cardHeights || {...DEFAULT_CARD_HEIGHTS});
+  const [preview, setPreview] = useState(false);
+  const [logos, setLogos] = useState(INIT_CONFIG?.logos || DEFAULT_LOGOS);
+  const [fontScale, setFontScaleState] = useState(INIT_CONFIG?.fontScale || DEFAULT_FONT_SCALE);
+  const currentScaleRef = useRef(1);
+  const posterRef = useRef(null);
+
+  useEffect(() => { const cfg = getFullConfig(layout, cardHeights, fontScale, logos); localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }, [layout, cardHeights, fontScale, logos]);
+  useEffect(() => { document.documentElement.style.setProperty('--font-scale', fontScale); }, [fontScale]);
+  useEffect(() => { document.body.classList.toggle('preview', preview); }, [preview]);
+
+  const fit = useCallback(() => {
+    if (window.matchMedia('print').matches) return;
+    const pW = POSTER_W_MM * MM, pH = POSTER_H_MM * MM;
+    const scale = Math.min(window.innerWidth / pW, window.innerHeight / pH);
+    currentScaleRef.current = scale;
+    const left = (window.innerWidth - pW * scale) / 2;
+    const top = (window.innerHeight - pH * scale) / 2;
+    document.body.style.transform = 'translate(' + left + 'px,' + top + 'px) scale(' + scale + ')';
+  }, []);
+  useEffect(() => { fit(); window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }, [fit]);
+
+  useEffect(() => { if (typeof renderMathInElement === 'function') renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]}); });
+
+  useEffect(() => {
+    function handler(e) { if (selectedCard && !e.target.closest('.swap-handle') && !e.target.closest('.drop-zone')) setSelectedCard(null); }
+    document.addEventListener('click', handler); return () => document.removeEventListener('click', handler);
+  }, [selectedCard]);
+
+  function swapCards(id1, id2) {
+    if (id1 === id2) return false;
+    setLayout(prev => { const next = cloneLayout(prev); let l1, l2; for (const c of next.columns) { const i1 = c.cards.indexOf(id1); if (i1!==-1) l1={col:c,idx:i1}; const i2 = c.cards.indexOf(id2); if (i2!==-1) l2={col:c,idx:i2}; } if (!l1||!l2) return prev; l1.col.cards[l1.idx]=id2; l2.col.cards[l2.idx]=id1; return next; });
+    setCardHeights(prev => { const n={...prev}; delete n[id1]; delete n[id2]; return n; });
+    return true;
+  }
+  function moveCard(cardId, targetColId, position) {
+    setLayout(prev => { const next = cloneLayout(prev); for (const c of next.columns) { const i = c.cards.indexOf(cardId); if (i!==-1) { c.cards.splice(i,1); break; } } const tc = next.columns.find(c=>c.id===targetColId); if (!tc) return prev; tc.cards.splice(Math.max(0,Math.min(position,tc.cards.length)),0,cardId); return next; });
+    setCardHeights(prev => { const n={...prev}; delete n[cardId]; return n; });
+  }
+  function setColumnWidth(colId, widthMm) { setLayout(prev => { const next = cloneLayout(prev); const c = next.columns.find(c=>c.id===colId); if (!c) return prev; c.widthMm = widthMm; return next; }); }
+  function setCardHeight(cardId, heightMm) { setCardHeights(prev => ({...prev, [cardId]: heightMm})); }
+  function getWaste() { let total=0; const details=[]; document.querySelectorAll('.fig-wrap').forEach(fw => { const img=fw.querySelector('img'); if(!img)return; const fr=fw.getBoundingClientRect(),ir=img.getBoundingClientRect(); const wH=Math.abs(fr.height-ir.height),wW=Math.abs(fr.width-ir.width); total+=wH+wW; details.push({card:fw.closest('.card')?.dataset.id,wasteH:Math.round(wH),wasteW:Math.round(wW),pct:Math.round((wH+wW)/(fr.height+fr.width)*100)}); }); return {total:Math.round(total),details}; }
+  function getLayout() { const s=currentScaleRef.current; const r=[]; document.querySelectorAll('#poster > .col').forEach(col => { const cards=[]; col.querySelectorAll('.card').forEach(c => { const b=c.getBoundingClientRect(); cards.push({id:c.dataset.id,height:Math.round(b.height/s),heightMm:Math.round(b.height/s/MM),grow:c.classList.contains('grow')}); }); r.push({colId:col.id,widthPx:Math.round(col.getBoundingClientRect().width/s),widthMm:Math.round(col.getBoundingClientRect().width/s/MM),cards}); }); return r; }
+
+  function resetLayout() { setLayout(cloneLayout(DEFAULT_LAYOUT)); setCardHeights({...DEFAULT_CARD_HEIGHTS}); setFontScaleState(DEFAULT_FONT_SCALE); setLogos([...DEFAULT_LOGOS]); setSelectedCard(null); localStorage.removeItem(LS_KEY); }
+  function saveConfig() { const cfg=getFullConfig(layout,cardHeights,fontScale,logos); const b=new Blob([JSON.stringify(cfg,null,2)+'\n'],{type:'application/json'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download='poster-config.json'; a.click(); URL.revokeObjectURL(u); }
+  function copyConfig() { navigator.clipboard.writeText(JSON.stringify(getFullConfig(layout,cardHeights,fontScale,logos),null,2)).then(()=>alert('Config copied! Paste it to Claude.')); }
+  function setFontScale(s) { setFontScaleState(parseFloat(s)||3.0); }
+
+  useEffect(() => { window.posterAPI = { swapCards, moveCard, setColumnWidth, setCardHeight, setFontScale, getWaste, getLayout, getConfig:()=>getFullConfig(layout,cardHeights,fontScale,logos), resetLayout, saveConfig, copyConfig }; });
+
+  function handleSwapClick(cardId, e) { e.stopPropagation(); if (!selectedCard) setSelectedCard(cardId); else if (selectedCard===cardId) setSelectedCard(null); else { swapCards(selectedCard, cardId); setSelectedCard(null); } }
+  function handleDropZone(targetColId, position, e) { e.stopPropagation(); if (!selectedCard) return; moveCard(selectedCard, targetColId, position); setSelectedCard(null); }
+
+  function handleColResize(dividerIdx, e) {
+    e.preventDefault(); const handle=e.currentTarget; handle.classList.add('active');
+    const targetColIdx=dividerIdx===0?0:2; const invert=dividerIdx===0?1:-1;
+    const targetEl=document.getElementById(layout.columns[targetColIdx].id);
+    const startX=e.clientX; const scale=currentScaleRef.current;
+    const startW=targetEl.getBoundingClientRect().width/scale;
+    function onMove(ev) { const dx=(ev.clientX-startX)/scale*invert; const newW=Math.max(200,(startW+dx)/MM); setLayout(prev => { const next=cloneLayout(prev); next.columns[targetColIdx].widthMm=Math.round(newW); return next; }); }
+    function onUp() { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); handle.classList.remove('active'); document.body.style.cursor=''; }
+    document.body.style.cursor='col-resize'; document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+  }
+
+  function handleRowResize(colId, cardAboveIdx, e) {
+    e.preventDefault(); const handle=e.currentTarget; handle.classList.add('active');
+    const col=layout.columns.find(c=>c.id===colId); const aboveId=col.cards[cardAboveIdx];
+    const aboveEl=document.querySelector('[data-id="'+aboveId+'"]'); if(!aboveEl)return;
+    const startY=e.clientY; const scale=currentScaleRef.current; const startH=aboveEl.getBoundingClientRect().height/scale;
+    setCardHeights(prev=>({...prev,[aboveId]:startH/MM}));
+    function onMove(ev) { const dy=(ev.clientY-startY)/scale; setCardHeights(prev=>({...prev,[aboveId]:Math.max(40,(startH+dy)/MM)})); }
+    function onUp() { document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); handle.classList.remove('active'); document.body.style.cursor=''; }
+    document.body.style.cursor='row-resize'; document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+  }
+
+  function isCardGrow(cardId) {
+    if (cardHeights[cardId] != null) return false;
+    for (const col of layout.columns) {
+      const idx = col.cards.indexOf(cardId); if (idx===-1) continue;
+      const hasGrower = col.cards.some(cid => CARD_REGISTRY[cid]?.grow && cardHeights[cid]==null);
+      if (hasGrower) return CARD_REGISTRY[cardId]?.grow || false;
+      const lastFlexible = [...col.cards].reverse().find(cid => cardHeights[cid]==null);
+      return cardId === lastFlexible;
+    }
+    return false;
+  }
+
+  function renderCard(cardId) {
+    const card = CARD_REGISTRY[cardId]; if (!card) return null;
+    const classes = ['card']; if (card.color) classes.push(card.color); if (isCardGrow(cardId)) classes.push('grow'); if (selectedCard===cardId) classes.push('swap-selected');
+    const style = {}; if (cardHeights[cardId]!=null) style.flex='0 0 '+cardHeights[cardId]+'mm';
+    return (<div key={cardId} className={classes.join(' ')} data-id={cardId} style={style}>
+      <div className="swap-handle" onClick={(e)=>handleSwapClick(cardId,e)}>&#x2725;</div>
+      <h2 dangerouslySetInnerHTML={{__html: card.title}} />
+      {card.body}
+    </div>);
+  }
+
+  function renderDropZone(colId, position) {
+    const visible = selectedCard !== null;
+    return (<div key={'dz-'+colId+'-'+position} className={'drop-zone'+(visible?' visible':'')} onClick={(e)=>handleDropZone(colId,position,e)}>{visible && <div className="drop-zone-inner" />}</div>);
+  }
+
+  function renderColumn(col) {
+    const style = col.widthMm != null ? {flex:'0 0 '+col.widthMm+'mm'} : {flex:'1.5'};
+    const children = [renderDropZone(col.id, 0)];
+    col.cards.forEach((cardId, i) => {
+      children.push(renderCard(cardId));
+      if (i < col.cards.length - 1) children.push(<div key={'row-'+col.id+'-'+i} className="divider row-resize" onMouseDown={(e)=>handleRowResize(col.id,i,e)} />);
+      children.push(renderDropZone(col.id, i + 1));
+    });
+    return (<div key={col.id} className="col" id={col.id} style={style}>{children}</div>);
+  }
+
+  return (
+    <>
+      <div className="toolbar">
+        <button onClick={()=>setPreview(!preview)} style={preview?{background:'#1f5aa6',color:'#fff'}:{}}>{preview?'Edit':'Preview'}</button>
+        {!preview && <>
+          <button onClick={()=>setFontScale(Math.max(1.0,fontScale-0.1))}>A-</button>
+          <button onClick={()=>setFontScale(fontScale+0.1)}>A+</button>
+          <button onClick={saveConfig} title="Download poster-config.json">Save</button>
+          <button onClick={copyConfig} title="Copy config JSON to clipboard">Copy Config</button>
+          <button onClick={resetLayout}>Reset</button>
+        </>}
+      </div>
+
+      <div className="header">
+        <div className="header-left">
+          <h1><span className="m">GEPA:</span> Reflective Prompt Evolution Can Outperform Reinforcement Learning</h1>
+          <div className="authors">
+            <span className="lead">Lakshya A Agrawal</span><sup>1</sup>,&nbsp; Shangyin Tan<sup>1</sup>,&nbsp; Dilara Soylu<sup>2</sup>,&nbsp; Noah Ziems<sup>4</sup>,&nbsp; Rishi Khare<sup>1</sup>,&nbsp; Krista Opsahl-Ong<sup>5</sup>,&nbsp; Arnav Singhvi<sup>2,5</sup>,&nbsp; Herumb Shandilya<sup>2</sup>,&nbsp; Michael J Ryan<sup>2</sup>,&nbsp; Meng Jiang<sup>4</sup>,&nbsp; Christopher Potts<sup>2</sup>,&nbsp; Koushik Sen<sup>1</sup>,&nbsp; Alexandros G. Dimakis<sup>1,3</sup>,&nbsp; Ion Stoica<sup>1</sup>,&nbsp; Dan Klein<sup>1</sup>,&nbsp; Matei Zaharia<sup>1,5</sup>,&nbsp; Omar Khattab<sup>6</sup>
+          </div>
+          <div className="aff">
+            <sup>1</sup>UC Berkeley &nbsp;•&nbsp; <sup>2</sup>Stanford &nbsp;•&nbsp; <sup>3</sup>BespokeLabs.ai &nbsp;•&nbsp; <sup>4</sup>Notre Dame &nbsp;•&nbsp; <sup>5</sup>Databricks &nbsp;•&nbsp; <sup>6</sup>MIT
+          </div>
+        </div>
+        {logos.length > 0 && (
+          <div className="header-logos">
+            {logos.map((logo, i) => (<img key={i} src={logo.src} alt={logo.alt} className={logo.wordmark ? 'wordmark' : ''} style={{height:(logo.heightMm||40)+'mm'}} />))}
+          </div>
+        )}
+        <div className="header-right">
+          <div className="badge">ICLR 2026<span className="b2">Oral</span></div>
+          <div className="qr"><img src="qr.png" alt="Project page" /><div className="ql">Project page</div></div>
+          <div className="qr"><img src="qr-github.png" alt="GitHub" /><div className="ql">github.com/gepa-ai/gepa</div></div>
+          <div className="qr"><img src="qr-posterskill.png" alt="Posterskill" /><div className="ql">Poster made with my Claude skill</div></div>
+        </div>
+      </div>
+
+      <div className="poster" id="poster" ref={posterRef}>
+        {layout.columns.map((col, colIdx) => {
+          const elements = [];
+          if (colIdx > 0) elements.push(<div key={'col-div-'+colIdx} className="divider col-resize" onMouseDown={(e)=>handleColResize(colIdx-1,e)} />);
+          elements.push(renderColumn(col));
+          return elements;
+        })}
+      </div>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<PosterApp />);
+</script>
+</body>
+</html>
